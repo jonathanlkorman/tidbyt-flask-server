@@ -94,6 +94,8 @@ def render_app():
         
         return send_file(output_path, mimetype='image/webp')
     except subprocess.CalledProcessError as e:
+        print("Error in Pixlet execution. Wrapped content:")
+        print(wrapped_content)
         return f"Error rendering app: {e.stderr}", 500
     finally:
         # Clean up the temporary file
