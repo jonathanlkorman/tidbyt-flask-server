@@ -1,10 +1,30 @@
 import os
 from flask import Flask, send_file, request
 import subprocess
-import pixlet
-import io
+import json
+import tempfile
 
 app = Flask(__name__)
+
+PIXLET_WRAPPER = """
+load("encoding/json.star", "json")
+
+CONFIG_JSON = '''{config_json}'''
+
+def get_config():
+    return json.decode(CONFIG_JSON)
+
+{original_content}
+
+def wrapped_main():
+    config = get_config()
+    for key, value in config.items():
+        globals()[key] = value
+    return main()
+
+if __name__ == "__main__":
+    wrapped_main()
+"""
 
 # Get the directory of the current script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -41,39 +61,37 @@ def render_app():
     config = data.get('config', {})
 
     # Path to the original .star file
-    app_path = os.path.join(PIXLET_APPS_DIR, f"{app_name}.star")
+    original_app_path = os.path.join(PIXLET_APPS_DIR, f"{app_name}.star")
 
-
-    if not os.path.exists(app_path):
+    if not os.path.exists(original_app_path):
         return "App not found", 404
 
+    # Create a temporary file with the wrapped content
+    with open(original_app_path, 'r') as original_file:
+        original_content = original_file.read()
+    
+    config_json = json.dumps(config)
+    wrapped_content = PIXLET_WRAPPER.format(
+        config_json=config_json,
+        original_content=original_content
+    )
+    
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.star', delete=False) as temp_file:
+        temp_file.write(wrapped_content)
+        temp_file_path = temp_file.name
+
+    output_path = os.path.join(CACHE_DIR, f"{app_name}_output.webp")
+
+    # Run pixlet with the wrapped file
     try:
-        # Load the Starlark script
-        with open(app_path, 'r') as file:
-            script_content = file.read()
-
-        # Create a Pixlet runtime
-        runtime = pixlet.Runtime()
-
-        # Inject config into the runtime's global namespace
-        for key, value in config.items():
-            runtime.set_value(key, value)
-
-        # Execute the script
-        mod = runtime.exec_module(script_content)
-
-        # Call the main function
-        main_func = mod.get_value('main')
-        result = main_func()
-
-        # Render the result to WebP
-        webp_data = pixlet.render(result)
-
-        # Create an in-memory file-like object
-        webp_file = io.BytesIO(webp_data)
-        webp_file.seek(0)
-
-        return send_file(webp_file, mimetype='image/webp')
-
-    except Exception as e:
-        return f"Error rendering app: {str(e)}", 500
+        subprocess.run(
+            ['pixlet', 'render', temp_file_path, '--output', output_path],
+            capture_output=True, text=True, check=True
+        )
+        
+        return send_file(output_path, mimetype='image/webp')
+    except subprocess.CalledProcessError as e:
+        return f"Error rendering app: {e.stderr}", 500
+    finally:
+        # Clean up the temporary file
+        os.unlink(temp_file_path)
