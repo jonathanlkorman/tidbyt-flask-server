@@ -16,14 +16,14 @@ def get_config():
 
 {original_content}
 
-def wrapped_main():
+def pixlet_main():
     config = get_config()
     for key, value in config.items():
         globals()[key] = value
     return main()
 
-if __name__ == "__main__":
-    wrapped_main()
+# This line will be executed by Pixlet
+app = pixlet_main()
 """
 
 # Get the directory of the current script
