@@ -6,6 +6,7 @@ import tempfile
 
 app = Flask(__name__)
 
+
 PIXLET_WRAPPER = """
 load("encoding/json.star", "json")
 
@@ -18,9 +19,7 @@ def get_config():
 
 def pixlet_main():
     config = get_config()
-    for key, value in config.items():
-        globals()[key] = value
-    return main()
+    return main(config)
 
 # This line will be executed by Pixlet
 app = pixlet_main()
