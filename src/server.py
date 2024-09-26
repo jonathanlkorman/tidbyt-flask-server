@@ -2,8 +2,25 @@ import os
 from flask import Flask, send_file, request
 import subprocess
 import json
+import tempfile
 
 app = Flask(__name__)
+
+PIXLET_WRAPPER = """
+load("encoding/json.star", "json")
+
+# Parse the config JSON
+config = json.decode(CONFIG_JSON)
+
+# Inject config into globals
+for key, value in config.items():
+    globals()[key] = value
+
+{original_content}
+
+if __name__ == "__main__":
+    main()
+"""
 
 # Get the directory of the current script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -39,22 +56,31 @@ def render_app():
     app_name = data.get('app_name')
     config = data.get('config', {})
 
-    # Path to the .star file
-    app_path = os.path.join(PIXLET_APPS_DIR, f"{app_name}.star")
+    # Path to the original .star file
+    original_app_path = os.path.join(PIXLET_APPS_DIR, f"{app_name}.star")
 
-    if not os.path.exists(app_path):
-        return f"App not found: {app_path}", 404
+    if not os.path.exists(original_app_path):
+        return "App not found", 404
+
+    # Create a temporary file with the wrapped content
+    with open(original_app_path, 'r') as original_file:
+        original_content = original_file.read()
     
+    config_json = json.dumps(config)
+    wrapped_content = PIXLET_WRAPPER.format(original_content=original_content)
+    
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.star', delete=False) as temp_file:
+        temp_file.write(f'CONFIG_JSON = """{config_json}"""\n\n')
+        temp_file.write(wrapped_content)
+        temp_file_path = temp_file.name
+
     output_path = os.path.join(CACHE_DIR, f"{app_name}_output.webp")
 
-    # Create a temporary JSON file with the config
-    with open('temp_config.json', 'w') as f:
-        json.dump(config, f)
 
-    # Run pixlet with the config file
+    # Run pixlet with the wrapped file
     try:
         subprocess.run(
-            ['pixlet', 'render', app_path, '--config', 'temp_config.json', '--output', output_path], 
+            ['pixlet', 'render', temp_file_path, '--output', output_path],
             capture_output=True, text=True, check=True
         )
         
@@ -62,5 +88,5 @@ def render_app():
     except subprocess.CalledProcessError as e:
         return f"Error rendering app: {e.stderr}", 500
     finally:
-        # Clean up the temporary config file
-        os.remove('temp_config.json')
+        # Clean up the temporary file
+        os.unlink(temp_file_path)
