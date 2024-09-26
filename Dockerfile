@@ -31,5 +31,8 @@ EXPOSE 8000
 # Create a directory for the cache
 RUN mkdir -p /app/cache
 
+# Set the PYTHONPATH to include the src directory
+ENV PYTHONPATH=/app/src:$PYTHONPATH
+
 # Run gunicorn when the container launches
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "src.server:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "server:app"]
