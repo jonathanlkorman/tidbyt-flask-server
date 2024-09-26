@@ -1,6 +1,6 @@
+import os
 from flask import Flask, send_file, request
 import subprocess
-import os
 
 app = Flask(__name__)
 
@@ -8,6 +8,9 @@ app = Flask(__name__)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PIXLET_APPS_DIR = os.path.join(SCRIPT_DIR, 'pixlet_apps')
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'cache')
+
+# Ensure cache directory exists
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 @app.route('/get_image')
 def get_image():
@@ -28,7 +31,3 @@ def get_image():
         return f"Error rendering Pixlet app: {e}", 500
     
     return send_file(output_path, mimetype='image/webp')
-
-if __name__ == '__main__':
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    app.run(host='0.0.0.0', port=5000)
