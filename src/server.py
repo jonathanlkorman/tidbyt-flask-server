@@ -34,6 +34,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PIXLET_APPS_DIR = os.path.join(SCRIPT_DIR, 'pixlet_apps')
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'cache')
 
+print(f"SCRIPT_DIR: {SCRIPT_DIR}")
+print(f"PIXLET_APPS_DIR: {PIXLET_APPS_DIR}")
+print(f"CACHE_DIR: {CACHE_DIR}")
+
 # Ensure cache directory exists
 os.makedirs(CACHE_DIR, exist_ok=True)
 
@@ -63,11 +67,18 @@ def render_app():
     app_name = data.get('app_name')
     config = data.get('config', {})
 
+    print(f"Received request for app: {app_name}")
+    print(f"Config: {json.dumps(config, indent=2)}")
+
     # Path to the original .star file
     original_app_path = os.path.join(PIXLET_APPS_DIR, f"{app_name}.star")
+    print(f"Looking for file: {original_app_path}")
 
     if not os.path.exists(original_app_path):
+        print(f"File not found: {original_app_path}")
         return "App not found", 404
+    
+    print(f"File found: {original_app_path}")
 
     # Create a temporary file with the wrapped content
     with open(original_app_path, 'r') as original_file:
@@ -87,10 +98,13 @@ def render_app():
 
     # Run pixlet with the wrapped file
     try:
+        print(f"Running Pixlet command: pixlet render {original_app_path} --output {output_path}")
         subprocess.run(
             ['pixlet', 'render', temp_file_path, '--output', output_path],
             capture_output=True, text=True, check=True
         )
+
+        print(f"Pixlet command completed successfully")
         
         return send_file(output_path, mimetype='image/webp')
     except subprocess.CalledProcessError as e:
