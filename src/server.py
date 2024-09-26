@@ -30,11 +30,11 @@ app = pixlet_main()
 """
 
 # Get the directory of the current script
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PIXLET_APPS_DIR = os.path.join(SCRIPT_DIR, 'pixlet_apps')
-CACHE_DIR = os.path.join(SCRIPT_DIR, 'cache')
+BASE_DIR = '/app/src'
+PIXLET_APPS_DIR = os.path.join(BASE_DIR, 'pixlet_apps')
+CACHE_DIR = os.path.join(BASE_DIR, 'cache')
 
-print(f"SCRIPT_DIR: {SCRIPT_DIR}")
+print(f"SCRIPT_DIR: {BASE_DIR}")
 print(f"PIXLET_APPS_DIR: {PIXLET_APPS_DIR}")
 print(f"CACHE_DIR: {CACHE_DIR}")
 
