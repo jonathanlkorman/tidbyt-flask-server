@@ -12,15 +12,14 @@ load("encoding/json.star", "json")
 
 CONFIG_JSON = '''{config_json}'''
 
-def decode_config():
+def get_config():
     return json.decode(CONFIG_JSON)
-
-config = decode_config()
 
 {original_content}
 
 def pixlet_main():
     try:
+        config = get_config()
         return main(config)
     except:
         return main()
