@@ -12,14 +12,18 @@ load("encoding/json.star", "json")
 
 CONFIG_JSON = '''{config_json}'''
 
-def get_config():
+def decode_config():
     return json.decode(CONFIG_JSON)
+
+config = decode_config()
 
 {original_content}
 
 def pixlet_main():
-    config = get_config()
-    return main(config)
+    try:
+        return main(config)
+    except:
+        return main()
 
 # This line will be executed by Pixlet
 app = pixlet_main()
