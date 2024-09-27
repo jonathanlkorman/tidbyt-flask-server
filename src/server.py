@@ -16,10 +16,50 @@ load("encoding/json.star", "json")
 
 CONFIG_JSON = '''{config_json}'''
 
+def get_config():
+    return json.decode(CONFIG_JSON)
+
+def config_wrapper(config_dict):
+    def get(key, default=None):
+        return config_dict.get(key, default)
+    
+    def str_value(key):
+        value = config_dict.get(key)
+        if value == None:
+            return None
+        return str(value)
+    
+    def bool_value(key):
+        value = config_dict.get(key)
+        if value == None:
+            return None
+        return bool(value)
+    
+    def int_value(key):
+        value = config_dict.get(key)
+        if value == None:
+            return None
+        return int(value)
+    
+    def float_value(key):
+        value = config_dict.get(key)
+        if value == None:
+            return None
+        return float(value)
+    
+    return struct(
+        get = get,
+        str = str_value,
+        bool = bool_value,
+        int = int_value,
+        float = float_value,
+    )
+
 {original_content}
 
 def main():
-    config = json.decode(CONFIG_JSON)
+    config_dict = get_config()
+    config = config_wrapper(config_dict)
     return original_main(config)
 """
 
