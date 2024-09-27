@@ -23,25 +23,33 @@ def config_wrapper(config_dict):
     def get(key, default=None):
         return config_dict.get(key, default)
     
-    def str_value(key):
+    def str_value(key, default=None):
+        if key == None:
+            key = default
         value = config_dict.get(key)
         if value == None:
             return None
         return str(value)
     
-    def bool_value(key):
+    def bool_value(key, default=None):
+        if key == None:
+            key = default
         value = config_dict.get(key)
         if value == None:
             return None
         return bool(value)
     
-    def int_value(key):
+    def int_value(key, default=None):
+        if key == None:
+            key = default
         value = config_dict.get(key)
         if value == None:
             return None
         return int(value)
     
-    def float_value(key):
+    def float_value(key, default=None):
+        if key == None:
+            key = default
         value = config_dict.get(key)
         if value == None:
             return None
