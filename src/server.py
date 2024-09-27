@@ -20,7 +20,7 @@ CONFIG_JSON = '''{config_json}'''
 
 def main():
     config = json.decode(CONFIG_JSON)
-    return clock_main(config)
+    return original_main(config)
 """
 
 # Get the directory of the current script
@@ -58,7 +58,9 @@ def render_app():
         with open(original_app_path, 'r') as original_file:
             original_content = original_file.read()
         
-        modified_content = original_content.replace('def main(', 'def clock_main(')
+        modified_content_main = original_content.replace('def main(', 'def original_main(')
+        modified_content = modified_content_main.replace('load("encoding/json.star", "json")', '')
+
         config_json = json.dumps(config).replace("'", "\\'").replace('"', '\\"')
         
         wrapped_content = PIXLET_WRAPPER.format(
