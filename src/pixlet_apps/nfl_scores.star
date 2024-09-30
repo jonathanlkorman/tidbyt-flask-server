@@ -44,6 +44,11 @@ def main(config):
     timezone = loc["timezone"]
     now = time.now().in_location(timezone)
     
+    preferred_teams = config.get("preferred_teams", ["NYJ"])
+    rotation_only_preferred = config.bool("rotation_only_preferred", False)
+    rotation_only_live = config.bool("rotation_only_live", True)
+    rotation_highlight_preferred_team_when_live = config.bool("rotation_highlight_preferred_team_when_live", True)
+    
     games = get_all_games()
     
     if not games:
@@ -51,8 +56,15 @@ def main(config):
             child = render.Text("No games available")
         )
     
+    filtered_games = filter_games(games, preferred_teams, rotation_only_preferred, rotation_only_live, rotation_highlight_preferred_team_when_live)
+    
+    if not filtered_games:
+        return render.Root(
+            child = render.Text("No games match the criteria")
+        )
+    
     pages = []
-    for game in games:
+    for game in filtered_games:
         pages.append(render_game(game, now, timezone))
     
     return render.Root(
@@ -60,6 +72,47 @@ def main(config):
         show_full_animation = True,
         child = render.Animation(children = pages)
     )
+
+def filter_games(games, preferred_teams, rotation_only_preferred, rotation_only_live, rotation_highlight_preferred_team_when_live):
+    filtered_games = []
+    for game in games:
+        if rotation_only_preferred and not includes_preferred_team(game, preferred_teams):
+            continue
+        filtered_games.append(game)
+
+    any_games_live = False
+    for game in filtered_games:
+        if is_live(game):
+            any_games_live = True
+            break
+
+    if rotation_only_live and any_games_live:
+        live_games = []
+        for game in filtered_games:
+            if is_live(game):
+                live_games.append(game)
+        filtered_games = live_games
+
+    preferred_teams_live = False
+    for game in filtered_games:
+        if includes_preferred_team(game, preferred_teams) and is_live(game):
+            preferred_teams_live = True
+            break
+
+    if rotation_highlight_preferred_team_when_live and preferred_teams_live:
+        highlighted_games = []
+        for game in filtered_games:
+            if includes_preferred_team(game, preferred_teams) and is_live(game):
+                highlighted_games.append(game)
+        filtered_games = highlighted_games
+
+    return filtered_games
+
+def includes_preferred_team(game, preferred_teams):
+    return game["hometeam"]["teamName"] in preferred_teams or game["awayteam"]["teamName"] in preferred_teams
+
+def is_live(game):
+    return game["state"] and game["state"] != "pre" and game["state"] != "post"
 
 def get_all_games():
     res = http.get(URL)
@@ -240,7 +293,6 @@ def render_game_status_column(game, now, timezone):
         children = children
     )
 
-
 def get_game_status(game, now, timezone):
     color = "#FF0000" if game["state"] == "post" else "#FFFFFF"
     
@@ -276,6 +328,33 @@ def get_schema():
                 name = "Location",
                 desc = "Location for which to display time.",
                 icon = "locationDot",
+            ),
+            schema.Text(
+                id = "preferred_teams",
+                name = "Preferred Teams",
+                desc = "Comma-separated list of preferred team abbreviations (e.g., 'NYG,DAL,GB')",
+                icon = "star",
+            ),
+            schema.Toggle(
+                id = "rotation_only_preferred",
+                name = "Show Only Preferred Teams",
+                desc = "If enabled, only shows games with preferred teams",
+                icon = "eye",
+                default = False,
+            ),
+            schema.Toggle(
+                id = "rotation_only_live",
+                name = "Show Only Live Games",
+                desc = "If enabled, only shows live games when available",
+                icon = "play",
+                default = False,
+            ),
+            schema.Toggle(
+                id = "rotation_highlight_preferred_team_when_live",
+                name = "Highlight Preferred Teams When Live",
+                desc = "If enabled, highlights preferred teams' games when they are live",
+                icon = "highlighter",
+                default = False,
             ),
         ],
     )
