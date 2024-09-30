@@ -38,16 +38,21 @@ ALT_LOGO = """
 }
 """
 
+DEFAULT_TEAMS = ["NYJ"]
+DEFAULT_ROTATION_PREFERRED = False
+DEFAULT_ROTATION_LIVE = True
+DEFAULT_ROTATION_HIGHLIGHT = True
+
 def main(config):
     location = config.get("location", DEFAULT_LOCATION)
     loc = json.decode(location)
     timezone = loc["timezone"]
     now = time.now().in_location(timezone)
     
-    preferred_teams = config.get("preferred_teams", ["NYJ"])
-    rotation_only_preferred = config.bool("rotation_only_preferred", False)
-    rotation_only_live = config.bool("rotation_only_live", True)
-    rotation_highlight_preferred_team_when_live = config.bool("rotation_highlight_preferred_team_when_live", True)
+    preferred_teams = config.get("preferred_teams", DEFAULT_TEAMS)
+    rotation_only_preferred = config.bool("rotation_only_preferred", DEFAULT_ROTATION_PREFERRED)
+    rotation_only_live = config.bool("rotation_only_live", DEFAULT_ROTATION_LIVE)
+    rotation_highlight_preferred_team_when_live = config.bool("rotation_highlight_preferred_team_when_live", DEFAULT_ROTATION_HIGHLIGHT)
     
     games = get_all_games()
     
