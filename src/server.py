@@ -1,4 +1,5 @@
 import os
+import re
 from flask import Flask, send_file, request
 import subprocess
 import json
@@ -105,8 +106,11 @@ def render_app():
     try:
         with open(original_app_path, 'r') as original_file:
             original_content = original_file.read()
-        
-        modified_content_main = original_content.replace('def main(', 'def original_main(')
+
+        pattern = r'def main\((.*?)\)'
+        replacement = 'def original_main(config=None)'
+        modified_content_main = re.sub(pattern, replacement, original_content)
+
         modified_content = modified_content_main.replace('load("encoding/json.star", "json")', '')
 
         config_json = json.dumps(config).replace("'", "\\'").replace('"', '\\"')
