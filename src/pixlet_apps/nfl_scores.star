@@ -260,24 +260,23 @@ def render_team_row(game, team, has_possession, width, height):
         width = width,
         height = height,
         color = team_color,
-        child = render.Padding(
-            pad = (padding, padding, padding, padding),
-            child = render.Row(
-                expanded = True,
-                main_align = "space_between",
-                cross_align = "center",
-                children = [
-                    render.Image(src = team["logo"], width = logo_size, height = logo_size),
-                    render.Column(
-                        expanded = True,
-                        main_align = "center",
-                        cross_align = "end",
-                        children = children
-                    ),
-                    render.Text(content = possession_indicator, font = "tom-thumb", color = "#FFFFFF"),
-                ]
-            )
+        
+        child = render.Row(
+            expanded = True,
+            main_align = "space_between",
+            cross_align = "center",
+            children = [
+                render.Image(src = team["logo"], width = logo_size, height = logo_size),
+                render.Column(
+                    expanded = True,
+                    main_align = "space_around",
+                    cross_align = "center",
+                    children = children
+                ),
+                render.Text(content = possession_indicator, font = "tom-thumb", color = "#FFFFFF"),
+            ]
         )
+        
     )
 
 def render_timeout_indicators(timeouts, team_color, width):
@@ -305,12 +304,15 @@ def render_game_status_column(game, now, timezone):
         children.append(render.Text(content = status_lines[0][0], font = "tom-thumb", color = status_lines[0][1]))
     
     if status_lines[1][0]:
+        children.append(render.Box(height=1, color="#000000"))
         children.append(render.Text(content = status_lines[1][0], font = "tom-thumb", color = status_lines[1][1]))
     
     if details[0][0]:
+        children.append(render.Box(height=1, color="#000000"))
         children.append(render.Text(content = details[0][0], font = "tom-thumb", color = details[0][1]))
 
     if details[1][0]:
+        children.append(render.Box(height=1, color="#000000"))
         children.append(render.Text(content = details[1][0], font = "tom-thumb", color = details[1][1]))
     
     return render.Column(
