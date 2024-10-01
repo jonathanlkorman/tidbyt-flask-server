@@ -193,10 +193,9 @@ def parse_team(team_data, is_home):
 
 
 def render_game(game, now, timezone):
-    # Calculate column widths
     total_width = 64
     total_height = 32
-    first_column_width = 28
+    first_column_width = int(total_width * 0.4375)
     second_column_width = total_width - first_column_width
 
     return render.Row(
@@ -303,15 +302,17 @@ def render_game_status_column(game, now, timezone):
 
 def get_game_status(game, now, timezone):
     color = "#FF0000" if game["state"] == "post" else "#FFFFFF"
+
+    gamedatetime = time.parse_time(game["date"], format="2006-01-02T15:04Z")
+    local_gamedatetime = gamedatetime.in_location(timezone)
     
     if game["state"] == "pre":
-        gamedatetime = time.parse_time(game["date"], format="2006-01-02T15:04Z")
-        local_gamedatetime = gamedatetime.in_location(timezone)
         date_text = "TODAY" if local_gamedatetime.day == now.day else local_gamedatetime.format("Jan 2")
         gametime = local_gamedatetime.format("3:04 PM")
         return [(date_text, color), (gametime, color)]
     elif game["state"] == "post":
-        return [("Final", color), ("", color)] if game["detail"] != "Final/OT" else [("F/OT", color), ("", color)]
+        date_text = local_gamedatetime.format("Jan 2")
+        return [(date_text, "#FFFFFF"), ("Final", color)] if game["detail"] != "Final/OT" else [(date_text, "#FFFFFF"), ("F/OT", color)]
     else:
         return [(ORDINAL[game["quarter"]], color), (game["time"], color)]
 
