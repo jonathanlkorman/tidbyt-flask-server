@@ -58,16 +58,12 @@ def main(config):
     games = get_all_games()
     
     if not games:
-        return render.Root(
-            child = render.Text("No games available")
-        )
+        return render.Root(child = render.Text("No games available"))
     
     filtered_games = filter_games(games, preferred_teams, rotation_only_preferred, rotation_only_live, rotation_highlight_preferred_team_when_live)
     
     if not filtered_games:
-        return render.Root(
-            child = render.Text("No games match the criteria")
-        )
+        return render.Root(child = render.Text("No games match the criteria"))
     
     pages = [render_game(game, now, timezone) for game in filtered_games]
     
@@ -78,38 +74,18 @@ def main(config):
     )
 
 def filter_games(games, preferred_teams, rotation_only_preferred, rotation_only_live, rotation_highlight_preferred_team_when_live):
-    filtered_games = []
-    for game in games:
-        if rotation_only_preferred and not includes_preferred_team(game, preferred_teams):
-            continue
-        filtered_games.append(game)
-
-    any_games_live = False
-    for game in filtered_games:
-        if is_live(game):
-            any_games_live = True
-            break
-
-    if rotation_only_live and any_games_live:
-        live_games = []
-        for game in filtered_games:
-            if is_live(game):
-                live_games.append(game)
+    filtered_games = [game for game in games if not rotation_only_preferred or includes_preferred_team(game, preferred_teams)]
+    
+    live_games = [game for game in filtered_games if is_live(game)]
+    
+    if rotation_only_live and live_games:
         filtered_games = live_games
-
-    preferred_teams_live = False
-    for game in filtered_games:
-        if includes_preferred_team(game, preferred_teams) and is_live(game):
-            preferred_teams_live = True
-            break
-
-    if rotation_highlight_preferred_team_when_live and preferred_teams_live:
-        highlighted_games = []
-        for game in filtered_games:
-            if includes_preferred_team(game, preferred_teams) and is_live(game):
-                highlighted_games.append(game)
-        filtered_games = highlighted_games
-
+    
+    if rotation_highlight_preferred_team_when_live:
+        preferred_live_games = [game for game in filtered_games if includes_preferred_team(game, preferred_teams) and is_live(game)]
+        if preferred_live_games:
+            filtered_games = preferred_live_games
+    
     return filtered_games
 
 def includes_preferred_team(game, preferred_teams):
