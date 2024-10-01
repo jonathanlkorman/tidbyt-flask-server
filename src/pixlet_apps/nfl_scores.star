@@ -37,7 +37,7 @@ ALT_LOGO = """
     "IND": "https://i.ibb.co/jzMc7SB/colts.png"
 }
 """
-
+DEFAULT_ROTATION_RATE = 10
 DEFAULT_TEAMS = ["NYJ"]
 DEFAULT_ROTATION_PREFERRED = False
 DEFAULT_ROTATION_LIVE = True
@@ -49,6 +49,8 @@ def main(config):
     timezone = loc["timezone"]
     now = time.now().in_location(timezone)
     
+
+    rotation_rate = config.get("rotation_rate", DEFAULT_ROTATION_RATE)
     preferred_teams = config.get("preferred_teams", DEFAULT_TEAMS)
     rotation_only_preferred = config.bool("rotation_only_preferred", DEFAULT_ROTATION_PREFERRED)
     rotation_only_live = config.bool("rotation_only_live", DEFAULT_ROTATION_LIVE)
@@ -73,7 +75,7 @@ def main(config):
         pages.append(render_game(game, now, timezone))
     
     return render.Root(
-        delay = int(10) * 1000,
+        delay = int(rotation_rate) * 1000,
         show_full_animation = True,
         child = render.Animation(children = pages)
     )
@@ -351,6 +353,12 @@ def get_schema():
                 id = "preferred_teams",
                 name = "Preferred Teams",
                 desc = "Comma-separated list of preferred team abbreviations (e.g., 'NYG,DAL,GB')",
+                icon = "star",
+            ),
+            schema.Text(
+                id = "rotation_rate",
+                name = "Rotation Rate",
+                desc = "Number of seconds to display each game",
                 icon = "star",
             ),
             schema.Toggle(
