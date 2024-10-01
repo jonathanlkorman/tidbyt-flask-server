@@ -69,9 +69,7 @@ def main(config):
             child = render.Text("No games match the criteria")
         )
     
-    pages = []
-    for game in filtered_games:
-        pages.append(render_game(game, now, timezone))
+    pages = [render_game(game, now, timezone) for game in filtered_games]
     
     return render.Root(
         delay = rotation_rate * 1000,
