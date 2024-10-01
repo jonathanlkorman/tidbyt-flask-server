@@ -224,12 +224,24 @@ def render_team_info_column(game, width, height):
             render.Box(
                 width = width,
                 height = team_height,
-                child = render_team_row(game, game["awayteam"], game["possession"] == game["awayteam"]["id"], width, team_height),
+                child = render_team_row(
+                    game, 
+                    game["awayteam"], 
+                    game["possession"] == game["awayteam"]["id"], 
+                    width, 
+                    team_height
+                ),
             ),
             render.Box(
                 width = width,
                 height = team_height,
-                child = render_team_row(game, game["hometeam"], game["possession"] == game["hometeam"]["id"], width, team_height),
+                child = render_team_row(
+                    game, 
+                    game["hometeam"], 
+                    game["possession"] == game["hometeam"]["id"], 
+                    width, 
+                    team_height
+                ),
             )
         ]
     )
@@ -245,15 +257,23 @@ def render_team_row(game, team, has_possession, width, height):
 
     children = []
 
-    children.append(render.Text(content = team["teamName"], font = "CG-pixel-3x5-mono", color = "#FFFFFF"))
+    children.append(
+        render.Text(content = team["teamName"], font = "CG-pixel-3x5-mono", color = "#FFFFFF")
+    )
 
     if game["state"] == "pre":
-        children.append(render.Text(content = str(team["record"]), font = "tom-thumb", color = "#FFFFFF"))
+        children.append(
+            render.Text(content = str(team["record"]), font = "tom-thumb", color = "#FFFFFF")
+        )
     else:
-        children.append(render.Text(content = str(team["score"]), font = "tom-thumb", color = "#FFFFFF"))
+        children.append(
+            render.Text(content = str(team["score"]), font = "tom-thumb", color = "#FFFFFF")
+        )
     
     if game["state"] == "in":
-        children.append(render_timeout_indicators(team["timeouts"], team_color, inner_width - logo_size - 10))  # 10 is an estimated width for the score/record text
+        children.append(
+            render_timeout_indicators(team["timeouts"], team_color, inner_width - logo_size - 10)
+        )  # 10 is an estimated width for the score/record text
 
     return render.Stack(
         children=[
@@ -316,19 +336,33 @@ def render_game_status_column(game, now, timezone):
     children = []
     
     if status_lines[0][0]:
-        children.append(render.Text(content = status_lines[0][0], font = "tom-thumb", color = status_lines[0][1]))
+        children.append(
+            render.Text(content = status_lines[0][0], font = "tom-thumb", color = status_lines[0][1])
+        )
     
     if status_lines[1][0]:
-        children.append(render.Box(height=1, color="#000000"))
-        children.append(render.Text(content = status_lines[1][0], font = "tom-thumb", color = status_lines[1][1]))
+        children.append(
+            render.Box(height=1, color="#000000")
+        )
+        children.append(
+            render.Text(content = status_lines[1][0], font = "tom-thumb", color = status_lines[1][1])
+        )
     
     if details[0][0]:
-        children.append(render.Box(height=1, color="#000000"))
-        children.append(render.Text(content = details[0][0], font = "tom-thumb", color = details[0][1]))
+        children.append(
+            render.Box(height=1, color="#000000")
+        )
+        children.append(
+            render.Text(content = details[0][0], font = "tom-thumb", color = details[0][1])
+        )
 
     if details[1][0]:
-        children.append(render.Box(height=1, color="#000000"))
-        children.append(render.Text(content = details[1][0], font = "tom-thumb", color = details[1][1]))
+        children.append(
+            render.Box(height=1, color="#000000")
+        )
+        children.append(
+            render.Text(content = details[1][0], font = "tom-thumb", color = details[1][1])
+        )
     
     return render.Column(
         expanded = True,
