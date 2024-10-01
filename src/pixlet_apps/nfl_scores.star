@@ -288,8 +288,11 @@ def render_game_status_column(game, now, timezone):
     if status_lines[1][0]:
         children.append(render.Text(content = status_lines[1][0], font = "tom-thumb", color = status_lines[1][1]))
     
-    if details[0]:
-        children.append(render.Text(content = details[0], font = "tom-thumb", color = details[1]))
+    if details[0][0]:
+        children.append(render.Text(content = details[0][0], font = "tom-thumb", color = details[0][1]))
+
+    if details[1][0]:
+        children.append(render.Text(content = details[1][0], font = "tom-thumb", color = details[1][1]))
     
     return render.Column(
         expanded = True,
@@ -316,9 +319,18 @@ def get_game_details(game):
     color = "#FFFFFF" 
     
     if game["state"] == "in":
-        return ("%s %s" % (game["down"], game["spot"]), color)
+        down = remove_lowercase_and_spaces(game["down"])
+        return [(down, color), (game["spot"], color)]
     else:
-        return ("", color)
+        return [("", color), ("", color)]
+
+def remove_lowercase_and_spaces(s):
+    result = ""
+    for i in range(len(s)):
+        c = s[i]
+        if c.isdigit() or c == "&":
+            result += c
+    return result.replace(" ", "")
 
 def get_team_color(team_name, default_color):
     alt_colors = json.decode(ALT_COLOR)
