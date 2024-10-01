@@ -49,8 +49,7 @@ def main(config):
     timezone = loc["timezone"]
     now = time.now().in_location(timezone)
     
-
-    rotation_rate = config.get("rotation_rate", DEFAULT_ROTATION_RATE)
+    rotation_rate = int(config.get("rotation_rate", DEFAULT_ROTATION_RATE))
     preferred_teams = config.get("preferred_teams", DEFAULT_TEAMS)
     rotation_only_preferred = config.bool("rotation_only_preferred", DEFAULT_ROTATION_PREFERRED)
     rotation_only_live = config.bool("rotation_only_live", DEFAULT_ROTATION_LIVE)
@@ -75,7 +74,7 @@ def main(config):
         pages.append(render_game(game, now, timezone))
     
     return render.Root(
-        delay = int(rotation_rate) * 1000,
+        delay = rotation_rate * 1000,
         show_full_animation = True,
         child = render.Animation(children = pages)
     )
