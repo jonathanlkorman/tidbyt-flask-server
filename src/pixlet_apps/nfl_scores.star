@@ -236,7 +236,6 @@ def render_team_info_column(game, width, height):
 
 def render_team_row(game, team, has_possession, width, height):
     team_color = get_team_color(team["teamName"], team["color"])
-    possession_indicator = "◀" if has_possession else ""
     
     # Calculate dimensions with padding
     padding = 1
@@ -255,28 +254,44 @@ def render_team_row(game, team, has_possession, width, height):
     
     if game["state"] == "in":
         children.append(render_timeout_indicators(team["timeouts"], team_color, inner_width - logo_size - 10))  # 10 is an estimated width for the score/record text
-    
-    return render.Box(
-        width = width,
-        height = height,
-        color = team_color,
-        
-        child = render.Row(
-            expanded = True,
-            main_align = "space_between",
-            cross_align = "center",
-            children = [
-                render.Image(src = team["logo"], width = logo_size, height = logo_size),
-                render.Column(
+
+    return render.Stack(
+        children=[
+            render.Box(
+                width = width,
+                height = height,
+                color = team_color,
+                
+                child = render.Row(
                     expanded = True,
                     main_align = "space_around",
                     cross_align = "center",
-                    children = children
-                ),
-                render.Text(content = possession_indicator, font = "tom-thumb", color = "#FFFFFF"),
-            ]
-        )
-        
+                    children = [
+                        render.Image(src = team["logo"], width = logo_size, height = logo_size),
+                        render.Column(
+                            expanded = True,
+                            main_align = "space_around",
+                            cross_align = "center",
+                            children = children
+                        ),
+                    ]
+                )
+                
+            ),
+            render.Row(
+                expanded=True,
+                main_align="end",
+                children=[
+                    render.Column(
+                        expanded=True,
+                        main_align="center",
+                        children=[
+                            render.Box(height=2, width=2, color = "#FFFFFF" if has_possession else team_color),
+                        ]
+                    )
+                ],
+            ),
+        ],
     )
 
 def render_timeout_indicators(timeouts, team_color, width):
