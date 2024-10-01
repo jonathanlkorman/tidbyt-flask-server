@@ -246,7 +246,7 @@ def render_team_row(game, team, has_possession, width, height):
 
     children = []
 
-    children.append(render.Text(content = team["teamName"], font = "tom-thumb", color = "#FFFFFF"))
+    children.append(render.Text(content = team["teamName"], font = "CG-pixel-3x5-mono", color = "#FFFFFF"))
 
     if game["state"] == "pre":
         children.append(render.Text(content = str(team["record"]), font = "tom-thumb", color = "#FFFFFF"))
