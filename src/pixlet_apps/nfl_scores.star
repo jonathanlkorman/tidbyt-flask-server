@@ -253,6 +253,9 @@ def render_team_row(game, team, has_possession, width, height):
     else:
         children.append(render.Text(content = str(team["score"]), font = "tom-thumb", color = "#FFFFFF"))
     
+    if game["state"] == "in":
+        children.append(render_timeout_indicators(team["timeouts"], team_color, inner_width - logo_size - 10))  # 10 is an estimated width for the score/record text
+    
     return render.Box(
         width = width,
         height = height,
@@ -268,7 +271,7 @@ def render_team_row(game, team, has_possession, width, height):
                     render.Column(
                         expanded = True,
                         main_align = "center",
-                        cross_align = "center",
+                        cross_align = "end",
                         children = children
                     ),
                     render.Text(content = possession_indicator, font = "tom-thumb", color = "#FFFFFF"),
@@ -277,6 +280,21 @@ def render_team_row(game, team, has_possession, width, height):
         )
     )
 
+def render_timeout_indicators(timeouts, team_color, width):
+    indicators = []
+    timeout_count = int(timeouts) if timeouts else 0
+    indicator_width = 2
+    spacing = 1 
+    total_width = (indicator_width * 3) + (spacing * 2) 
+    
+    for i in range(3):
+        color = "#FFFFFF" if i < timeout_count else "#000000"
+        indicators.append(render.Box(width = indicator_width, height = 1, color = color))
+        if i < 2:
+            indicators.append(render.Box(width = spacing, height = 1, color = team_color))
+    
+    return render.Row(children = indicators, main_align = "end")
+    
 def render_game_status_column(game, now, timezone):
     status_lines = get_game_status(game, now, timezone)
     details = get_game_details(game)
