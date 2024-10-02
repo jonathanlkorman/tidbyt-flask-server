@@ -357,7 +357,7 @@ def get_game_status(game, now, timezone):
 def get_game_details(game):
     color = "#FFFFFF" 
     
-    if game["state"] == "in":
+    if game["state"] == "in" and game["down"]:
         down = remove_lowercase_and_spaces(game["down"])
         return [(down, color), (game["spot"], color)]
     else:
