@@ -254,7 +254,7 @@ def render_team_row(game, team, has_possession, width, height):
                     main_align = "space_around",
                     cross_align = "center",
                     children = [
-                        render.Image(src = team["logo"], width = 14, height = 14),
+                        render.Image(src = team["logo"], width = 16, height = 16),
                         render.Column(
                             expanded = True,
                             main_align = "space_around",
