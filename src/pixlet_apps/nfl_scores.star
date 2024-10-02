@@ -221,12 +221,6 @@ def render_team_info_column(game, width, height):
 
 def render_team_row(game, team, has_possession, width, height):
     team_color = get_team_color(team["teamName"], team["color"])
-    
-    # Calculate dimensions with padding
-    padding = 1
-    logo_size = height - (2 * padding)
-    inner_width = width - (2 * padding)
-    inner_height = height - (2 * padding)
 
     children = []
 
@@ -245,8 +239,8 @@ def render_team_row(game, team, has_possession, width, height):
     
     if game["state"] == "in":
         children.append(
-            render_timeout_indicators(team["timeouts"], team_color, inner_width - logo_size - 10)
-        )  # 10 is an estimated width for the score/record text
+            render_timeout_indicators(team["timeouts"], team_color)
+        )
 
     return render.Stack(
         children=[
@@ -260,7 +254,7 @@ def render_team_row(game, team, has_possession, width, height):
                     main_align = "space_around",
                     cross_align = "center",
                     children = [
-                        render.Image(src = team["logo"], width = logo_size, height = logo_size),
+                        render.Image(src = team["logo"], width = 14, height = 14),
                         render.Column(
                             expanded = True,
                             main_align = "space_around",
@@ -287,7 +281,7 @@ def render_team_row(game, team, has_possession, width, height):
         ],
     )
 
-def render_timeout_indicators(timeouts, team_color, width):
+def render_timeout_indicators(timeouts, team_color):
     indicators = []
     timeout_count = int(timeouts) if timeouts else 0
     indicator_width = 2
