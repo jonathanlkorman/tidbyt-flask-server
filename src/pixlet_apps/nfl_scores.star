@@ -123,6 +123,21 @@ def get_all_games():
         games.append(game)
     return games
 
+def parse_team(team_data, is_home):
+    logo_url = team_data["team"]["logo"] if "logo" in team_data["team"] else ""
+    processed_logo = get_logoType(team_data["team"]["abbreviation"], logo_url)
+    
+    return {
+        "teamName": team_data["team"]["abbreviation"],
+        "id": team_data["id"],
+        "score": parse_score(team_data.get("score", 0)),
+        "timeouts": team_data.get("timeouts", 0),
+        "color": team_data["team"]["color"],
+        "altcolor": team_data["team"]["alternateColor"],
+        "record": team_data["records"][0]["summary"] if "records" in team_data else None,
+        "logo": processed_logo,
+    }
+
 def parse_score(score):
     if type(score) == "string":
         if score.isdigit():
@@ -151,22 +166,6 @@ def get_cachable_data(url, ttl_seconds = CACHE_TTL_SECONDS):
         fail("request to %s failed with status code: %d - %s" % (url, res.status_code, res.body()))
     return res.body()
 
-def parse_team(team_data, is_home):
-    logo_url = team_data["team"]["logo"] if "logo" in team_data["team"] else ""
-    processed_logo = get_logoType(team_data["team"]["abbreviation"], logo_url)
-    
-    return {
-        "teamName": team_data["team"]["abbreviation"],
-        "id": team_data["id"],
-        "score": parse_score(team_data.get("score", 0)),
-        "timeouts": team_data.get("timeouts", 0),
-        "color": team_data["team"]["color"],
-        "altcolor": team_data["team"]["alternateColor"],
-        "record": team_data["records"][0]["summary"] if "records" in team_data else None,
-        "logo": processed_logo,
-    }
-
-
 def render_game(game, now, timezone):
     total_width = 64
     total_height = 32
@@ -190,7 +189,7 @@ def render_game(game, now, timezone):
     )
 
 def render_team_info_column(game, width, height):
-    team_height = height // 2  # Each team takes up half the height
+    team_height = height // 2
     return render.Column(
         expanded = True,
         children = [
@@ -289,7 +288,7 @@ def render_timeout_indicators(timeouts, team_color):
     total_width = (indicator_width * 3) + (spacing * 2) 
     
     for i in range(3):
-        color = "#FFFFFF" if i < timeout_count else "#000000"
+        color = "#FFFFFF" if i < timeout_count else team_color
         indicators.append(render.Box(width = indicator_width, height = 1, color = color))
         if i < 2:
             indicators.append(render.Box(width = spacing, height = 1, color = team_color))
@@ -297,71 +296,109 @@ def render_timeout_indicators(timeouts, team_color):
     return render.Row(children = indicators, main_align = "end")
     
 def render_game_status_column(game, now, timezone):
-    status_lines = get_game_status(game, now, timezone)
+    status = get_game_status(game, now, timezone)
     details = get_game_details(game)
     
     children = []
     
-    if status_lines[0][0]:
+    if status.get("date_text"):
         children.append(
-            render.Text(content = status_lines[0][0], font = "tom-thumb", color = status_lines[0][1])
+            render.Text(content=status["date_text"], font="tom-thumb", color="#FFFFFF")
         )
-    
-    if status_lines[1][0]:
+        
+    if status.get("gametime"):
         children.append(
             render.Box(height=1, color="#000000")
         )
         children.append(
-            render.Text(content = status_lines[1][0], font = "tom-thumb", color = status_lines[1][1])
-        )
-    
-    if details[0][0]:
-        children.append(
-            render.Box(height=1, color="#000000")
-        )
-        children.append(
-            render.Text(content = details[0][0], font = "tom-thumb", color = details[0][1])
+            render.Text(content=status["gametime"], font="tom-thumb", color="#FFFFFF")
         )
 
-    if details[1][0]:
+    if status.get("final_text"):
         children.append(
             render.Box(height=1, color="#000000")
         )
         children.append(
-            render.Text(content = details[1][0], font = "tom-thumb", color = details[1][1])
+            render.Text(content=status["final_text"], font="tom-thumb", color="#FF0000")
+        )
+
+    if status.get("quarter"):
+        children.append(
+            render.Box(height=1, color="#000000")
+        )
+        children.append(
+            render.Text(content=status["quarter"], font="tom-thumb", color="#FFFFFF")
+        )
+        children.append(
+            render.Box(height=1, color="#000000")
+        )
+        children.append(
+            render.Text(content=status["time"], font="tom-thumb", color="#FFFFFF")
+        )
+    
+    if details["down"]:
+        children.append(
+            render.Box(height=1, color="#000000")
+        )
+        children.append(
+            render.Text(content=details["down"], font="tom-thumb", color="#FFFFFF")
+        )
+
+    if details["spot"]:
+        children.append(
+            render.Box(height=1, color="#000000")
+        )
+        children.append(
+            render.Text(content=details["spot"], font="tom-thumb", color="#FFFFFF")
         )
     
     return render.Column(
-        expanded = True,
-        main_align = "center",
-        cross_align = "center",
-        children = children
+        expanded=True,
+        main_align="center",
+        cross_align="center",
+        children=children
     )
 
-def get_game_status(game, now, timezone):
-    color = "#FF0000" if game["state"] == "post" else "#FFFFFF"
 
+def get_game_status(game, now, timezone):
     gamedatetime = time.parse_time(game["date"], format="2006-01-02T15:04Z")
     local_gamedatetime = gamedatetime.in_location(timezone)
     
     if game["state"] == "pre":
         date_text = "TODAY" if local_gamedatetime.day == now.day else local_gamedatetime.format("Jan 2")
         gametime = local_gamedatetime.format("3:04 PM")
-        return [(date_text, color), (gametime, color)]
+        return {
+            "date_text": date_text, 
+            "gametime": gametime
+        }
     elif game["state"] == "post":
         date_text = local_gamedatetime.format("Jan 2")
-        return [(date_text, "#FFFFFF"), ("Final", color)] if game["detail"] != "Final/OT" else [(date_text, "#FFFFFF"), ("F/OT", color)]
+        final_text = "Final" if game["detail"] != "Final/OT" else "F/OT"
+        return {
+            "date_text": date_text, 
+            "final_text": final_text
+        }
     else:
-        return [(ORDINAL[game["quarter"]], color), (game["time"], color)]
+        return {
+            "quarter": ORDINAL[game["quarter"]], 
+            "time": game["time"]
+        }
 
 def get_game_details(game):
     color = "#FFFFFF" 
     
     if game["state"] == "in" and game["down"]:
         down = remove_lowercase_and_spaces(game["down"])
-        return [(down, color), (game["spot"], color)]
+        return {
+            "down": down, 
+            "spot": game["spot"]
+        }
     else:
-        return [("", color), ("", color)]
+        return {
+            "down": "", 
+            "spot": ""
+        }
+
 
 def remove_lowercase_and_spaces(s):
     result = ""
