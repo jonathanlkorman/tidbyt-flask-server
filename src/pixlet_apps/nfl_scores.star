@@ -20,6 +20,9 @@ URL = "http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
 
 ORDINAL = ["Pre", "1st", "2nd", "3rd", "4th", "OT"]
 
+WHITE = "#FFFFFF"
+RED = "#FF0000"
+
 ALT_COLOR = """
 {
     "LAC": "1281c4",
@@ -224,16 +227,16 @@ def render_team_row(game, team, has_possession, width, height):
     children = []
 
     children.append(
-        render.Text(content = team["teamName"], font = "CG-pixel-3x5-mono", color = "#FFFFFF")
+        render.Text(content = team["teamName"], font = "CG-pixel-3x5-mono", color = WHITE)
     )
 
     if game["state"] == "pre":
         children.append(
-            render.Text(content = str(team["record"]), font = "tom-thumb", color = "#FFFFFF")
+            render.Text(content = str(team["record"]), font = "tom-thumb", color = WHITE)
         )
     else:
         children.append(
-            render.Text(content = str(team["score"]), font = "tom-thumb", color = "#FFFFFF")
+            render.Text(content = str(team["score"]), font = "tom-thumb", color = WHITE)
         )
     
     if game["state"] == "in":
@@ -272,7 +275,7 @@ def render_team_row(game, team, has_possession, width, height):
                         expanded=True,
                         main_align="center",
                         children=[
-                            render.Box(height=2, width=2, color = "#FFFFFF" if has_possession else team_color),
+                            render.Box(height=2, width=2, color = WHITE if has_possession else team_color),
                         ]
                     )
                 ],
@@ -288,7 +291,7 @@ def render_timeout_indicators(timeouts, team_color):
     total_width = (indicator_width * 3) + (spacing * 2) 
     
     for i in range(3):
-        color = "#FFFFFF" if i < timeout_count else team_color
+        color = WHITE if i < timeout_count else team_color
         indicators.append(render.Box(width = indicator_width, height = 1, color = color))
         if i < 2:
             indicators.append(render.Box(width = spacing, height = 1, color = team_color))
@@ -303,7 +306,7 @@ def render_game_status_column(game, now, timezone):
     
     if status.get("date_text"):
         children.append(
-            render.Text(content=status["date_text"], font="tom-thumb", color="#FFFFFF")
+            render.Text(content=status["date_text"], font="tom-thumb", color=WHITE)
         )
         
     if status.get("gametime"):
@@ -311,7 +314,7 @@ def render_game_status_column(game, now, timezone):
             render.Box(height=1, color="#000000")
         )
         children.append(
-            render.Text(content=status["gametime"], font="tom-thumb", color="#FFFFFF")
+            render.Text(content=status["gametime"], font="tom-thumb", color=WHITE)
         )
 
     if status.get("final_text"):
@@ -319,7 +322,7 @@ def render_game_status_column(game, now, timezone):
             render.Box(height=1, color="#000000")
         )
         children.append(
-            render.Text(content=status["final_text"], font="tom-thumb", color="#FF0000")
+            render.Text(content=status["final_text"], font="tom-thumb", color=RED)
         )
 
     if status.get("quarter"):
@@ -327,13 +330,13 @@ def render_game_status_column(game, now, timezone):
             render.Box(height=1, color="#000000")
         )
         children.append(
-            render.Text(content=status["quarter"], font="tom-thumb", color="#FFFFFF")
+            render.Text(content=status["quarter"], font="tom-thumb", color=WHITE)
         )
         children.append(
             render.Box(height=1, color="#000000")
         )
         children.append(
-            render.Text(content=status["time"], font="tom-thumb", color="#FFFFFF")
+            render.Text(content=status["time"], font="tom-thumb", color=WHITE)
         )
     
     if details["down"]:
@@ -341,7 +344,7 @@ def render_game_status_column(game, now, timezone):
             render.Box(height=1, color="#000000")
         )
         children.append(
-            render.Text(content=details["down"], font="tom-thumb", color="#FFFFFF")
+            render.Text(content=details["down"], font="tom-thumb", color=WHITE)
         )
 
     if details["spot"]:
@@ -349,7 +352,7 @@ def render_game_status_column(game, now, timezone):
             render.Box(height=1, color="#000000")
         )
         children.append(
-            render.Text(content=details["spot"], font="tom-thumb", color="#FFFFFF")
+            render.Text(content=details["spot"], font="tom-thumb", color=WHITE)
         )
     
     return render.Column(
@@ -384,9 +387,7 @@ def get_game_status(game, now, timezone):
             "time": game["time"]
         }
 
-def get_game_details(game):
-    color = "#FFFFFF" 
-    
+def get_game_details(game):    
     if game["state"] == "in" and game["down"]:
         down = remove_lowercase_and_spaces(game["down"])
         return {
