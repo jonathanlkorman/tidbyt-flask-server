@@ -367,7 +367,7 @@ def remove_lowercase_and_spaces(s):
     result = ""
     for i in range(len(s)):
         c = s[i]
-        if c.isdigit() or c == "&":
+        if c.isdigit() or c == "&" or c == 'G':
             result += c
     return result.replace(" ", "")
 
