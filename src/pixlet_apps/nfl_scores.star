@@ -21,6 +21,7 @@ URL = "http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
 ORDINAL = ["Pre", "1st", "2nd", "3rd", "4th", "OT"]
 
 WHITE = "#FFFFFF"
+BLACK = "#000000"
 RED = "#FF0000"
 
 ALT_COLOR = """
@@ -311,7 +312,7 @@ def render_game_status_column(game, now, timezone):
         
     if status.get("gametime"):
         children.append(
-            render.Box(height=1, color="#000000")
+            render.Box(height=1, color=BLACK)
         )
         children.append(
             render.Text(content=status["gametime"], font="tom-thumb", color=WHITE)
@@ -319,7 +320,7 @@ def render_game_status_column(game, now, timezone):
 
     if status.get("final_text"):
         children.append(
-            render.Box(height=1, color="#000000")
+            render.Box(height=1, color=BLACK)
         )
         children.append(
             render.Text(content=status["final_text"], font="tom-thumb", color=RED)
@@ -327,13 +328,13 @@ def render_game_status_column(game, now, timezone):
 
     if status.get("quarter"):
         children.append(
-            render.Box(height=1, color="#000000")
+            render.Box(height=1, color=BLACK)
         )
         children.append(
             render.Text(content=status["quarter"], font="tom-thumb", color=WHITE)
         )
         children.append(
-            render.Box(height=1, color="#000000")
+            render.Box(height=1, color=BLACK)
         )
         children.append(
             render.Text(content=status["time"], font="tom-thumb", color=WHITE)
@@ -341,7 +342,7 @@ def render_game_status_column(game, now, timezone):
     
     if details["down"]:
         children.append(
-            render.Box(height=1, color="#000000")
+            render.Box(height=1, color=BLACK)
         )
         children.append(
             render.Text(content=details["down"], font="tom-thumb", color=WHITE)
@@ -349,7 +350,7 @@ def render_game_status_column(game, now, timezone):
 
     if details["spot"]:
         children.append(
-            render.Box(height=1, color="#000000")
+            render.Box(height=1, color=BLACK)
         )
         children.append(
             render.Text(content=details["spot"], font="tom-thumb", color=WHITE)
