@@ -6,16 +6,6 @@ load("time.star", "time")
 
 CACHE_TTL_SECONDS = 300
 
-DEFAULT_LOCATION = """
-{
-    "lat": "40.6781784",
-    "lng": "-73.9441579",
-    "description": "Brooklyn, NY, USA",
-    "locality": "Brooklyn",
-    "place_id": "ChIJCSF8lBZEwokRhngABHRcdoI",
-    "timezone": "America/New_York"
-}
-"""
 URL = "http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
 
 ORDINAL = ["Pre", "1st", "2nd", "3rd", "4th", "OT"]
@@ -41,6 +31,7 @@ ALT_LOGO = """
     "IND": "https://i.ibb.co/jzMc7SB/colts.png"
 }
 """
+DEFAULT_TIMEZONE = "America/New_York"
 DEFAULT_ROTATION_RATE = 10
 DEFAULT_TEAMS = ["NYJ"]
 DEFAULT_ROTATION_PREFERRED = False
@@ -48,9 +39,7 @@ DEFAULT_ROTATION_LIVE = True
 DEFAULT_ROTATION_HIGHLIGHT = True
 
 def main(config):
-    location = config.get("location", DEFAULT_LOCATION)
-    loc = json.decode(location)
-    timezone = loc["timezone"]
+    timezone = config.get("timezone", DEFAULT_TIMEZONE)
     now = time.now().in_location(timezone)
     
     rotation_rate = int(config.get("rotation_rate", DEFAULT_ROTATION_RATE))
