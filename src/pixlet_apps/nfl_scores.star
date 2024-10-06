@@ -100,8 +100,8 @@ def get_all_games():
         game = {
             "name": event["shortName"],
             "date": event["date"],
-            "hometeam": parse_team(info["competitors"][0], True),
-            "awayteam": parse_team(info["competitors"][1], False),
+            "hometeam": parse_team(info["competitors"][0], info.get('situation', {}).get('homeTimeouts', 0)),
+            "awayteam": parse_team(info["competitors"][1], info.get('situation', {}).get('awayTimeouts', 0)),
             "down": info.get("situation", {}).get("shortDownDistanceText"),
             "spot": info.get("situation", {}).get("possessionText"),
             "time": info["status"]["displayClock"],
@@ -116,7 +116,7 @@ def get_all_games():
         games.append(game)
     return games
 
-def parse_team(team_data, is_home):
+def parse_team(team_data, timeouts):
     logo_url = team_data["team"]["logo"] if "logo" in team_data["team"] else ""
     processed_logo = get_logoType(team_data["team"]["abbreviation"], logo_url)
     
@@ -124,7 +124,7 @@ def parse_team(team_data, is_home):
         "teamName": team_data["team"]["abbreviation"],
         "id": team_data["id"],
         "score": parse_score(team_data.get("score", 0)),
-        "timeouts": team_data.get("timeouts", 0),
+        "timeouts": timeouts,
         "color": team_data["team"]["color"],
         "altcolor": team_data["team"]["alternateColor"],
         "record": team_data["records"][0]["summary"] if "records" in team_data else None,
