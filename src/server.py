@@ -1,9 +1,10 @@
 import os
-import re
-from flask import Flask, send_file, request
-import subprocess
 import json
+import re
 import tempfile
+import subprocess
+import importlib.util
+from flask import Flask, request, send_file
 import logging
 
 # Configure logging
@@ -76,13 +77,25 @@ def main():
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PIXLET_APPS_DIR = os.path.join(SCRIPT_DIR, 'pixlet_apps')
 CACHE_DIR = os.path.join(SCRIPT_DIR, 'cache')
+HELPERS_DIR = os.path.join(SCRIPT_DIR, 'helpers')
 
 print(f"SCRIPT_DIR: {SCRIPT_DIR}")
 print(f"PIXLET_APPS_DIR: {PIXLET_APPS_DIR}")
 print(f"CACHE_DIR: {CACHE_DIR}")
+print(f"HELPERS_DIR: {HELPERS_DIR}")
 
 # Ensure cache directory exists
 os.makedirs(CACHE_DIR, exist_ok=True)
+
+def load_helper(helper_name):
+    helper_path = os.path.join(HELPERS_DIR, f"{helper_name}.py")
+    if not os.path.exists(helper_path):
+        return None
+    
+    spec = importlib.util.spec_from_file_location(helper_name, helper_path)
+    helper_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper_module)
+    return helper_module
 
 @app.route('/render_app', methods=['POST'])
 def render_app():
@@ -106,6 +119,15 @@ def render_app():
     try:
         with open(original_app_path, 'r') as original_file:
             original_content = original_file.read()
+
+        # Check if the app requires a helper
+        helper_match = re.search(r'#\s*HELPER:\s*(\w+)', original_content)
+        if helper_match:
+            helper_name = helper_match.group(1)
+            helper_module = load_helper(helper_name)
+            if helper_module and hasattr(helper_module, 'get_data'):
+                helper_data = helper_module.get_data(config)
+                config['helper_data'] = helper_data
 
         pattern = r'def main\((.*?)\)'
         replacement = 'def original_main(config=None)'
@@ -148,3 +170,6 @@ def render_app():
     finally:
         if 'temp_file_path' in locals():
             os.unlink(temp_file_path)
+
+if __name__ == '__main__':
+    app.run(debug=True)
