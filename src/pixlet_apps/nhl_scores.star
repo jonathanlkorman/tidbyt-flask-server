@@ -13,6 +13,7 @@ ORDINAL = ["Pre", "1st", "2nd", "3rd", "OT"]
 WHITE = "#FFFFFF"
 BLACK = "#000000"
 RED = "#FF0000"
+GREY = "#6b6b6b"
 
 ALT_LOGO = """
 {
@@ -46,7 +47,9 @@ def main(config):
     if not filtered_games:
         return render.Root(child = render.Text("No games match the criteria"))
     
-    pages = [render_game(game, now, timezone) for game in filtered_games]
+    game_count = len(filtered_games)
+    
+    pages = [render_game(game, now, timezone, game_count, index) for index, game in enumerate(filtered_games)]
     
     return render.Root(
         delay = rotation_rate * 1000,
@@ -142,45 +145,67 @@ def get_cachable_data(url, ttl_seconds = CACHE_TTL_SECONDS):
         fail("request to %s failed with status code: %d - %s" % (url, res.status_code, res.body()))
     return res.body()
 
-def render_game(game, now, timezone):
+def render_game_indicator(game_count, index):
+    children = []
+    if game_count > 1:
+        for i in range(game_count):
+            color = RED if i == index else GREY
+            children.append(render.Box(height=1, width=1, color=color))
+            
+            if i < game_count - 1:
+                children.append(render.Box(height=1, width=2, color=BLACK))
+
     return render.Row(
-        expanded = True,
         main_align="center",
+        cross_align="end",
+        expanded = True,
+        children = children
+    )
+
+def render_team_column(team):
+    return render.Column(
+        expanded = True,
+        main_align="space_evenly",
         cross_align="center",
         children = [
-            render.Box(
-                width = 20,
-                height = 32,
-                child = render.Column(
-                    expanded = True,
-                    main_align="space_evenly",
-                    cross_align="center",
-                    children = [
-                        render.Image(src = game["awayteam"]["logo"], width = 20, height = 20),
-                        render.Text(content=game["awayteam"]["teamName"], font="tom-thumb", color=WHITE)
-                    ]
-                )
-            ),
-            render.Box(
-                width = 24,
-                height = 32,
-                child = render_game_status_column(game, now, timezone)
-            ),
-            render.Box(
-                width = 20,
-                height = 32,
-                child = render.Column(
-                    expanded = True,
-                    main_align="space_evenly",
-                    cross_align="center",
-                    children = [
-                        render.Image(src = game["hometeam"]["logo"], width = 20, height = 20),
-                        render.Text(content=game["hometeam"]["teamName"], font="tom-thumb", color=WHITE)
-                    ]
-                )
-            ),
+            render.Image(src = team["logo"], width = 20, height = 20),
+            render.Text(content=team["teamName"], font="tom-thumb", color=WHITE)
         ]
     )
+
+def render_game(game, now, timezone, game_count, index):
+    return render.Stack(
+        children = [
+            render.Row(
+                expanded = True,
+                main_align="center",
+                cross_align="center",
+                children = [
+                    render.Box(
+                        width = 20,
+                        height = 32,
+                        child = render_team_column(game["awayteam"])
+                    ),
+                    render.Box(
+                        width = 24,
+                        height = 32,
+                        child = render_game_status_column(game, now, timezone)
+                    ),
+                    render.Box(
+                        width = 20,
+                        height = 32,
+                        child = render_team_column(game["hometeam"])
+                    ),
+                ]
+            ),
+            render.Column(
+                main_align="end",
+                cross_align="end",
+                expanded = True,
+                children = [render_game_indicator(game_count, index)]
+            )
+        ]
+    )  
     
 def render_game_status_column(game, now, timezone):
     status = get_game_status(game, now, timezone)
