@@ -202,7 +202,16 @@ def render_game(game, now, timezone, game_count, index):
                 main_align="end",
                 cross_align="end",
                 expanded = True,
-                children = [render_game_indicator(game_count, index)]
+                children = [
+                    render_game_indicator(game_count, index),
+                    #render a space
+                    render.Row(
+                        main_align="start",
+                        cross_align="end",
+                        expanded = True,
+                        children = [render.Box(height=1, width=1, color=BLACK)]
+                    ),
+                ]
             )
         ]
     )  
