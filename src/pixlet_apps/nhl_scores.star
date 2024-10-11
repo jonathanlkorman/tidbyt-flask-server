@@ -21,6 +21,7 @@ ALT_LOGO = """
 }
 """
 DEFAULT_TIMEZONE = "America/New_York"
+DEFAULT_CUTOFF_TIME = 9
 DEFAULT_ROTATION_RATE = 10
 DEFAULT_TEAMS = ["NYI"]
 DEFAULT_ROTATION_PREFERRED = False
@@ -29,6 +30,7 @@ DEFAULT_ROTATION_HIGHLIGHT = True
 
 def main(config):
     timezone = config.get("timezone", DEFAULT_TIMEZONE)
+    cutoff_time = config.get("cutoff_time", DEFAULT_CUTOFF_TIME)
     now = time.now().in_location(timezone)
     
     rotation_rate = int(config.get("rotation_rate", DEFAULT_ROTATION_RATE))
@@ -37,7 +39,7 @@ def main(config):
     rotation_only_live = config.bool("rotation_only_live", DEFAULT_ROTATION_LIVE)
     rotation_highlight_preferred_team_when_live = config.bool("rotation_highlight_preferred_team_when_live", DEFAULT_ROTATION_HIGHLIGHT)
     
-    games = get_all_games()
+    games = get_all_games(cutoff_time, timezone)
     
     if not games:
         return render.Root(child = render.Text("No games available"))
@@ -78,8 +80,8 @@ def includes_preferred_team(game, preferred_teams):
 def is_live(game):
     return game["state"] and game["state"] != "pre" and game["state"] != "post"
 
-def get_all_games():
-    res = http.get(URL + "?dates=" + current_date())
+def get_all_games(cutoff_time,  timezone):
+    res = http.get(URL + "?dates=" + get_game_date(cutoff_time, timezone))
     if res.status_code != 200:
         print("Error fetching game data")
         return []
@@ -311,16 +313,36 @@ def get_game_status(game, now, timezone):
             "score": concatenated_score
         }
 
-def current_date():
-    now = time.now()
-    year = str(now.year)
-    month = str(now.month)
-    day = str(now.day)
-    if len(month) == 1:
-        month = "0" + month
-    if len(day) == 1:
-        day = "0" + day
-    return year + month + day
+def get_game_date(cutoff_time, timezone):
+    now = time.now().in_location(timezone)
+    if now.hour < cutoff_time:
+        if now.day > 1:
+            year = now.year
+            month = now.month
+            day = now.day - 1
+        elif now.month > 1:
+            year = now.year
+            month = now.month - 1
+            if month in [1, 3, 5, 7, 8, 10, 12]:
+                day = 31
+            elif month in [4, 6, 9, 11]:
+                day = 30
+            else: 
+                day = 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28
+        else:
+            year = now.year - 1
+            month = 12
+            day = 31
+    else:
+        year = now.year
+        month = now.month
+        day = now.day
+    
+    year_str = str(year)
+    month_str = "0" + str(month) if month < 10 else str(month)
+    day_str = "0" + str(day) if day < 10 else str(day)
+    
+    return year_str + month_str + day_str
     
 def get_schema():
     return schema.Schema(
