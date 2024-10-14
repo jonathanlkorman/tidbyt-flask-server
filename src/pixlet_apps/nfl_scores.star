@@ -372,7 +372,7 @@ def get_game_status(game, now, timezone):
             "final_text": final_text
         }
     else:
-        time_text = "END" if game["time"] in {"0:00", "0:0", "0.00", "0.0"} else game["time"]
+        time_text = "END" if game["time"] in ["0:00", "0:0", "0.00", "0.0"] else game["time"]
         return {
             "quarter": ORDINAL[game["quarter"]], 
             "time": time_text
