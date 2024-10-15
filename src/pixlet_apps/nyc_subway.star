@@ -40,7 +40,7 @@ STREET_ABBREVIATIONS = [
 ]
 
 ABBREVIATIONS = {
-    "World Trade Center": "WTC",
+    "World Trade Center": "Wld Trd Ctr",
     "Center": "Ctr",
     "Metropolitan": "Metrop",
     "Blvd": "Bl",
