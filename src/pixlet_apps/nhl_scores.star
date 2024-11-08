@@ -6,7 +6,12 @@ load("time.star", "time")
 
 CACHE_TTL_SECONDS = 300
 
-URL = "http://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard"
+TEAM_MAP = {
+    "NYI": "12",   
+}
+
+SCOREBOARD_URL = "http://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard"
+SCHEDULE_URL = "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/team_id/schedule"
 
 ORDINAL = ["Pre", "1st", "2nd", "3rd", "OT"]
 
@@ -27,18 +32,31 @@ DEFAULT_TEAMS = ["NYI"]
 DEFAULT_ROTATION_PREFERRED = False
 DEFAULT_ROTATION_LIVE = True
 DEFAULT_ROTATION_HIGHLIGHT = True
+DEFAULT_SINGLE_GAME_MODE = False
 
 def main(config):
     timezone = config.get("timezone", DEFAULT_TIMEZONE)
     cutoff_time = config.get("cutoff_time", DEFAULT_CUTOFF_TIME)
     now = time.now().in_location(timezone)
     
+    single_game_mode = config.get("single_game_mode", DEFAULT_SINGLE_GAME_MODE)
     rotation_rate = int(config.get("rotation_rate", DEFAULT_ROTATION_RATE))
     preferred_teams = config.get("preferred_teams", DEFAULT_TEAMS)
     rotation_only_preferred = config.bool("rotation_only_preferred", DEFAULT_ROTATION_PREFERRED)
     rotation_only_live = config.bool("rotation_only_live", DEFAULT_ROTATION_LIVE)
     rotation_highlight_preferred_team_when_live = config.bool("rotation_highlight_preferred_team_when_live", DEFAULT_ROTATION_HIGHLIGHT)
     
+    if single_game_mode and len(preferred_teams) == 1: 
+        team_id = TEAM_MAP.get(preferred_teams[0])
+        next_game_day = get_next_game_date(team_id, cutoff_time, timezone)
+        game = get_next_game(cutoff_time, timezone, team_id, next_game_day)
+        
+        if not game:
+            return render.Root(child = render.Text("No games available for the selected team"))
+            
+        return render.Root(child = render_game(game, now, timezone, 1, 0))
+
+
     games = get_all_games(cutoff_time, timezone)
     
     if not games:
@@ -81,7 +99,7 @@ def is_live(game):
     return game["state"] and game["state"] != "pre" and game["state"] != "post"
 
 def get_all_games(cutoff_time,  timezone):
-    res = http.get(URL + "?dates=" + get_game_date(cutoff_time, timezone))
+    res = http.get(SCOREBOARD_URL + "?dates=" + get_date_string(get_cutoff_date(cutoff_time, timezone)))
     if res.status_code != 200:
         print("Error fetching game data")
         return []
@@ -104,6 +122,53 @@ def get_all_games(cutoff_time,  timezone):
         }
         games.append(game)
     return games
+
+def get_next_game(cutoff_time,  timezone, team_id, next_game_day):
+    res = http.get(SCOREBOARD_URL + "?dates=" + get_date_string(next_game_day))
+    if res.status_code != 200:
+        print("Error fetching game data")
+        return []
+    
+    data = json.decode(res.body())
+    for event in data["events"]:
+        info = event["competitions"][0]
+        game = {
+            "name": event["shortName"],
+            "date": event["date"],
+            "hometeam": parse_team(info["competitors"][0]),
+            "awayteam": parse_team(info["competitors"][1]),
+            "time": info["status"]["displayClock"],
+            "quarter": info["status"]["period"],
+            "over": info["status"]["type"]["completed"],
+            "detail": info["status"]["type"]["detail"],
+            "halftime": info["status"]["type"]["name"],
+            "state": info["status"]["type"]["state"],
+        }
+        if game["hometeam"]["id"] == team_id or game["awayteam"]["id"] == team_id:
+            return game
+    return None
+
+def get_next_game_date(team_id, cutoff_time, timezone):
+    res = http.get(SCHEDULE_URL.replace("team_id", team_id))
+    if res.status_code != 200:
+        print("Error fetching game data")
+        return []
+
+    data = json.decode(res.body())
+
+    now = get_cutoff_date(cutoff_time, timezone)
+
+    next_game_day = None
+    for event in data['events']:
+        gamedatetime = time.parse_time(event["date"], format="2006-01-02T15:04Z")
+        local_gamedatetime = gamedatetime.in_location(timezone)
+        if local_gamedatetime == now:
+            next_game_day = now
+            break
+        elif local_gamedatetime > now:
+            next_game_day = local_gamedatetime
+            break
+    return next_game_day
 
 def parse_team(team_data):
     logo_url = team_data["team"]["logo"] if "logo" in team_data["team"] else ""
@@ -314,30 +379,23 @@ def get_game_status(game, now, timezone):
             "score": concatenated_score
         }
 
-def get_game_date(cutoff_time, timezone):
+def get_cutoff_date(cutoff_hour, timezone):
+    # Get the current time in the specified timezone
     now = time.now().in_location(timezone)
-    if now.hour < cutoff_time:
-        if now.day > 1:
-            year = now.year
-            month = now.month
-            day = now.day - 1
-        elif now.month > 1:
-            year = now.year
-            month = now.month - 1
-            if month in [1, 3, 5, 7, 8, 10, 12]:
-                day = 31
-            elif month in [4, 6, 9, 11]:
-                day = 30
-            else: 
-                day = 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28
-        else:
-            year = now.year - 1
-            month = 12
-            day = 31
+
+    # Check if the current hour is before the cutoff time
+    if now.hour < cutoff_hour:
+        # If before the cutoff time, return yesterday's date
+        yesterday = now - time.parse_duration("24h")
+        return time.time(year=yesterday.year, month=yesterday.month, day=yesterday.day, location=timezone)
     else:
-        year = now.year
-        month = now.month
-        day = now.day
+        # If on or after the cutoff time, return today's date
+        return time.time(year=now.year, month=now.month, day=now.day, location=timezone)
+
+def get_date_string(date):
+    year = date.year
+    month = date.month
+    day = date.day
     
     year_str = str(year)
     month_str = "0" + str(month) if month < 10 else str(month)
