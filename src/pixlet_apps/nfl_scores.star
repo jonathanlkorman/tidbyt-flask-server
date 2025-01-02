@@ -31,6 +31,13 @@ ALT_LOGO = """
     "IND": "https://i.ibb.co/jzMc7SB/colts.png"
 }
 """
+
+ALT_SIZE = """
+{
+    "IND": {"width": 12, "height": 12}
+}
+"""
+
 DEFAULT_TIMEZONE = "America/New_York"
 DEFAULT_ROTATION_RATE = 10
 DEFAULT_TEAMS = ["NYJ"]
@@ -118,7 +125,9 @@ def get_all_games():
 
 def parse_team(team_data, timeouts):
     logo_url = team_data["team"]["logo"] if "logo" in team_data["team"] else ""
-    processed_logo = get_logoType(team_data["team"]["abbreviation"], logo_url)
+    team_abbr = team_data["team"]["abbreviation"]
+    processed_logo = get_logoType(team_abbr, logo_url)
+    logo_dimensions = get_logo_dimensions(team_abbr)
     
     return {
         "teamName": team_data["team"]["abbreviation"],
@@ -129,6 +138,8 @@ def parse_team(team_data, timeouts):
         "altcolor": team_data["team"]["alternateColor"],
         "record": team_data["records"][0]["summary"] if "records" in team_data else None,
         "logo": processed_logo,
+        "logo_width": logo_dimensions["width"],
+        "logo_height": logo_dimensions["height"],
     }
 
 def parse_score(score):
@@ -152,6 +163,11 @@ def get_logoType(team, logo):
         logo = logo.replace("https://a.espncdn.com/", "https://a.espncdn.com/combiner/i?img=", 36000)
         logo = get_cachable_data(logo + "&h=50&w=50")
     return logo
+
+def get_logo_dimensions(team):
+    alt_sizes = json.decode(ALT_SIZE)
+    default_size = {"width": 16, "height": 16}
+    return alt_sizes.get(team, default_size)
 
 def get_cachable_data(url, ttl_seconds = CACHE_TTL_SECONDS):
     res = http.get(url = url, ttl_seconds = ttl_seconds)
@@ -246,7 +262,11 @@ def render_team_row(game, team, has_possession, width, height):
                     main_align = "space_around",
                     cross_align = "center",
                     children = [
-                        render.Image(src = team["logo"], width = 16, height = 16),
+                        render.Image(
+                            src = team["logo"], 
+                            width = team["logo_width"], 
+                            height = team["logo_height"]
+                        ),
                         render.Column(
                             expanded = True,
                             main_align = "space_around",
