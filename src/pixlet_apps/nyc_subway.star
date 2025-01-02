@@ -142,6 +142,8 @@ def main(config):
         else:
             text = str(int(eta)) + " min"
 
+        blocks.append(render.Box(width = 1, height = 1, color = "#000000"))
+
         if len(route["name"]) > 1 and route["name"][1] == "X":
             bullet = render.Stack(
                 children = [
