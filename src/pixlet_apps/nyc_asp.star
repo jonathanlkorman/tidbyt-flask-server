@@ -18,7 +18,7 @@ DEFAULT_LOCATION = """
     "timezone": "America/New_York"
 }
 """
-WHITE = "#FFFFFF"
+GREEN = "#00FF00"
 BLACK = "#000000"
 RED = "#FF0000"
 ASP_LOGO = '''
@@ -50,7 +50,7 @@ def main(config):
         return render.Root(child = render.Text("No data"))
 
     asp_text = asp["CalendarDetailStatus"] if asp["CalendarDetailStatus"] else "In Effect"
-    color = RED if asp["CalendarDetailStatus"] else WHITE
+    color = RED if asp["CalendarDetailStatus"] else GREEN
  
     return render.Root(child = render.Column(
         expanded = True,
@@ -62,20 +62,23 @@ def main(config):
                 main_align = "center",
                 cross_align = "center",
                 children = [
-                    render.Image(
-                        src = base64.decode(ASP_LOGO),
-                        width = 16, 
-                        height = 16
+                    render.Padding(
+                        pad = (2, 0, 0, 0),
+                        child = render.Image(
+                            src = base64.decode(ASP_LOGO),
+                            width = 16, 
+                            height = 16
+                        ),
                     ),
                     render.Padding(
-                        pad = (4, 0, 0, 0),
+                        pad = (2, 0, 0, 0),
                         child = render.Column(
                             expanded = True,
                             main_align = "center",
-                            cross_align = "center",
+                            cross_align = "start",
                             children = [
-                                render.Text(date, font="tom-thumb"),
-                                render.Text(asp_text, font="tom-thumb", color=color)
+                                render.Text(date),
+                                render.Text(asp_text, color=color)
                             ]
                         )
 
