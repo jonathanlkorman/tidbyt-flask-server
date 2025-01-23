@@ -6,9 +6,21 @@ load("schema.star", "schema")
 load("time.star", "time")
 
 CACHE_TTL_SECONDS = 300
-
 NYC_PORTAL_URL = "https://portal.311.nyc.gov/home-cal"
-
+DEFAULT_TIMEZONE = "America/New_York"
+DEFAULT_LOCATION = """
+{
+    "lat": "40.6781784",
+    "lng": "-73.9441579",
+    "description": "Brooklyn, NY, USA",
+    "locality": "Brooklyn",
+    "place_id": "ChIJCSF8lBZEwokRhngABHRcdoI",
+    "timezone": "America/New_York"
+}
+"""
+WHITE = "#FFFFFF"
+BLACK = "#000000"
+RED = "#FF0000"
 ASP_LOGO = '''
 PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDIyLjAuMSw
 gU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheW
@@ -31,12 +43,14 @@ sOTkuMiA3NC45LDk0LjMgMTAwLDc1LjcgCQkJCSIvPgoJCQk8L2c+CgkJPC9nPgoJPC9nPgo8L2c+Cjw
 '''
 
 def main(config):
-    asp = get_data()
+    asp = get_data(config)
+    date = get_print_date(config)
         
-    if not asp and not asp["CalendarDetailStatus"]:
+    if not asp:
         return render.Root(child = render.Text("No data"))
 
-    asp_text = asp["CalendarDetailStatus"]
+    asp_text = asp["CalendarDetailStatus"] if asp["CalendarDetailStatus"] else "In Effect"
+    color = RED if asp["CalendarDetailStatus"] else WHITE
  
     return render.Root(child = render.Column(
         expanded = True,
@@ -55,15 +69,25 @@ def main(config):
                     ),
                     render.Padding(
                         pad = (4, 0, 0, 0),
-                        child = render.Text(asp_text, font="tom-thumb")
+                        child = render.Column(
+                            expanded = True,
+                            main_align = "center",
+                            cross_align = "center",
+                            children = [
+                                render.Text(date, font="tom-thumb"),
+                                render.Text(asp_text, font="tom-thumb", color=color)
+                            ]
+                        )
+
                     )
                 ]
             )
         ]
     ))
 
-def get_data():
-    res = http.get(NYC_PORTAL_URL)
+def get_data(config):
+    day = get_query_date(config)
+    res = http.get(NYC_PORTAL_URL + "/?today=" + day)
     if res.status_code != 200:
         print("Error fetching asp data")
         return []
@@ -80,7 +104,23 @@ def strip_after_period(s):
             break
         result += c
     return result
-    
+
+def get_next_day(config):
+   location = config.get("location", DEFAULT_LOCATION)
+   loc = json.decode(location)
+   timezone = loc.get("timezone", config.get("$tz", DEFAULT_TIMEZONE))
+   
+   now = time.now().in_location(timezone)
+   tom = now + time.parse_duration("24h")
+
+   return tom
+
+def get_query_date(config):
+    return get_next_day(config).format("1/02/2006")
+
+def get_print_date(config):
+    return get_next_day(config).format("Jan 2")
+
 def get_schema():
     return schema.Schema(
         version = "1",
