@@ -18,10 +18,11 @@ DEFAULT_LOCATION = """
     "timezone": "America/New_York"
 }
 """
-GREEN = "#00FF00"
+WHITE = "#FFFFFF"
 BLACK = "#000000"
 RED = "#FF0000"
-ASP_LOGO = '''
+
+ASP_LOGO = base64.decode("""
 PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDIyLjAuMSw
 gU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheW
 VyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpb
@@ -40,17 +41,32 @@ QyIiB4MT0iMTYuMyIgeTE9IjIzLjIiIHgyPSI4My40IiB5Mj0iODMuMiIvPgoJCTxnPgoJCQk8cG9seW
 HM9IjEwMCw3NS43IDc0LjksOTQuMyA2NS45LDkxLjggOTIuMSw3Mi45IAkJCSIvPgoJCQk8Zz4KCQkJCTxwb2x5Z29uIHBvaW50cz0iNzQu
 OSw5NC4zIDc0LjksOTkuMiA2NS45LDk2LjUgNjUuOSw5MS44IAkJCQkiLz4KCQkJCTxwb2x5Z29uIHBvaW50cz0iOTkuNyw4MS4zIDc0Ljk
 sOTkuMiA3NC45LDk0LjMgMTAwLDc1LjcgCQkJCSIvPgoJCQk8L2c+CgkJPC9nPgoJPC9nPgo8L2c+Cjwvc3ZnPgo=
-'''
+""")
+
+RED_CAL_ICON = base64.decode("""
+iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNS
+R0IArs4c6QAAAGZJREFUOE9jZKAyYKSyeQwoBr6VUflPjgXCT+7AzYEzyDUM5gCYoWADKTUM2V
+DaGPj//3+ywg49vBlBACQ4aiA5SRGsZzQMyQ46uEbahSE1Ejcsk6AUX+TmGJhh4KRDecihmkB1
+AwEFRUAVgcjeRAAAAABJRU5ErkJggg==
+""")
+
+GREEN_CAL_ICON = base64.decode("""
+iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IArs4c6QAAAGRJREFUOE9j
+ZKAyYKSyeQwoBipt9PlPjgX3/LfAzYEzyDUM5gCYoWADKTUM2VDaGPj//3+ywg49vBlBACQ4aiA5
+SRGsZzQMyQ46uMbBHYawTAIvbSjJLTDDwEmH8pBDNYHqBgIAFrVAFR7m2MMAAAAASUVORK5CYII=
+""")
 
 def main(config):
-    asp = get_data(config)
-    date = get_print_date(config)
-        
-    if not asp:
-        return render.Root(child = render.Text("No data"))
+    
+    location = config.get("location", DEFAULT_LOCATION)
+    loc = json.decode(location)
+    timezone = loc.get("timezone", config.get("$tz", DEFAULT_TIMEZONE))
+    now = time.now().in_location(timezone)
 
-    asp_text = asp["CalendarDetailStatus"] if asp["CalendarDetailStatus"] else "In Effect"
-    color = RED if asp["CalendarDetailStatus"] else GREEN
+    results = get_data(now)
+        
+    if not results:
+        return render.Root(child = render.Text("No data"))
  
     return render.Root(child = render.Column(
         expanded = True,
@@ -65,64 +81,108 @@ def main(config):
                     render.Padding(
                         pad = (2, 0, 0, 0),
                         child = render.Image(
-                            src = base64.decode(ASP_LOGO),
+                            src = ASP_LOGO,
                             width = 16, 
                             height = 16
                         ),
                     ),
-                    render.Padding(
-                        pad = (2, 0, 0, 0),
-                        child = render.Column(
-                            expanded = True,
-                            main_align = "center",
-                            cross_align = "start",
-                            children = [
-                                render.Text(date),
-                                render.Text(asp_text, color=color)
-                            ]
-                        )
-
-                    )
+                    process_asp_results(results, now)
                 ]
             )
         ]
     ))
 
-def get_data(config):
-    day = get_query_date(config)
-    res = http.get(NYC_PORTAL_URL + "/?today=" + day)
-    if res.status_code != 200:
-        print("Error fetching asp data")
-        return []
+def process_asp_results(results, now):
+    day_abbr = {
+        'Monday': 'M', 
+        'Tuesday': 'T', 
+        'Wednesday': 'W', 
+        'Thursday': 'T', 
+        'Friday': 'F', 
+        'Saturday': 'S', 
+        'Sunday': 'S'
+    }
+    children = []
+    for index, item in enumerate(results):
+        parsed_date = get_date_offset(now, index + 1)
+        day_name = parsed_date.format("Monday")
+        formatted_day = day_abbr.get(day_name, day_name)
+
+        asp = item["asp"]
+        asp_img = (
+            render.Image(width = 11, height = 11, src=RED_CAL_ICON)
+            if asp["CalendarDetailStatus"] 
+            else render.Image(width = 11, height = 11, src=GREEN_CAL_ICON)
+        )
+
+        children.append(
+            render.Padding(
+                pad = (1, 0, 1, 0),
+                child = render.Stack(
+                    children = [
+                        asp_img,
+                        render.Padding(
+                            pad = (4, 4, 0, 0),
+                            child = render.Text(formatted_day, font="tom-thumb", color=BLACK)
+                        )
+                    ]
+                )
+            )
+        )
+
+    first_row = children[:3]
+    second_row = children[3:6]
     
-    data = json.decode(res.body())
-    asp = data["results"][0]
-    return asp
+    return render.Column(
+        main_align="center",
+        cross_align="center",
+        expanded=True,
+        children=[
+            render.Row(
+                main_align="center",
+                cross_align="center",
+                expanded=True,
+                children=first_row
+            ),
+            render.Row(
+                main_align="center",
+                cross_align="center",
+                expanded=True,
+                children=second_row
+            )
+        ]
+    )
 
-def strip_after_period(s):
-    result = ""
-    for i in range(len(s)):
-        c = s[i]
-        if c == '.':
-            break
-        result += c
-    return result
 
-def get_next_day(config):
-   location = config.get("location", DEFAULT_LOCATION)
-   loc = json.decode(location)
-   timezone = loc.get("timezone", config.get("$tz", DEFAULT_TIMEZONE))
-   
-   now = time.now().in_location(timezone)
-   tom = now + time.parse_duration("24h")
+def get_data(now):
+    results = []
+    for i in range(6):
+        day = get_query_date(now, offset=i + 1)
+        url = NYC_PORTAL_URL + "/?today=" + day
+        res = http.get(url)
 
-   return tom
+        if res.status_code != 200:
+            fail("request to %s failed with status code: %d - %s" % (url, res.status_code, res.body()))
+        
+        data = json.decode(res.body())
+        results.append({
+            "date": data["date"],
+            "asp": data["results"][0]
+        })
+    
+    return results
 
-def get_query_date(config):
-    return get_next_day(config).format("1/02/2006")
+def get_date_offset(now, offset):
+    hours_in_day = 24
+    days = offset * hours_in_day
+    duration = str(days) + "h"
 
-def get_print_date(config):
-    return get_next_day(config).format("Jan 2")
+    new_day = now + time.parse_duration(duration)
+
+    return new_day
+
+def get_query_date(now, offset):
+    return get_date_offset(now, offset).format("1/02/2006")
 
 def get_schema():
     return schema.Schema(
