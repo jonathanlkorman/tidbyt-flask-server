@@ -156,6 +156,10 @@ LIRR_STATIONS = {
     "Yaphank": "223"
 }
 
+STATION_ABBREVIATIONS = {
+    "Penn Station": "Penn St"
+}
+
 ROUTE_COLORS = {
     "1": {"name": "Babylon Branch", "color": "00985F", "text_color": "FFFFFF"},
     "2": {"name": "Hempstead Branch", "color": "CE8E00", "text_color": "121212"},
@@ -336,8 +340,11 @@ def route_to_dict(route_info):
     ny_time = departure_time.astimezone(ny_tz)
     formatted_departure_time = ny_time.strftime("%I:%M %p")
 
+    full_station_name = get_station_name(route[0].to_station)
+    station_name = STATION_ABBREVIATIONS.get(full_station_name, full_station_name)
+
     return {
-        "destination_station_name": get_station_name(route[0].to_station),
+        "destination_station_name": station_name,
         "route_name": route[0].route_name,
         "route_text_color": route[0].route_text_color,
         "route_color": route[0].route_color,
