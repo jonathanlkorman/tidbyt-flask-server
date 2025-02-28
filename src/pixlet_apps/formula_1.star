@@ -165,12 +165,7 @@ def main(config):
         return render.Root(
             child = render.Column(
                 children = [
-                    render.Marquee(
-                        width = 64,
-                        child = render.Text(" " + next_race["raceName"] + " - " + next_race["Circuit"]["Location"]["locality"] + " " + next_race["Circuit"]["Location"]["country"]),
-                        offset_start = 5,
-                        offset_end = 5,
-                    ),
+                    render.Text(next_race["raceName"].replace("Grand Prix", "GP")),
                     render.Box(width = 64, height = 1, color = "#a0a"),
                     render.Row(
                         children = [
