@@ -46,8 +46,8 @@ VERSION = 24063
 DEFAULTS = {
     "timezone": "America/New_York",
     "display": "NRI",
-    "time_24": True,
-    "date_us": False,
+    "time_24": False,
+    "date_us": True,
 }
 
 #30x24 track maps
@@ -157,7 +157,7 @@ def main(config):
 
             #code from @whyamihere to automatically adjust the date time sting from the API
             date_and_time3 = time.parse_time(date_and_time, "2006-01-02T15:04:05Z", "UTC").in_location(timezone)
-            time_str = date_and_time3.format("15:04" if config.bool("time_24", DEFAULTS["time_24"]) else "3:04pm").replace("m", "")  #outputs military time but can change 15 to 3 to not do that. The Only thing missing from your current string though is the time zone, but if they're doing local time that's pretty irrelevant
+            time_str = date_and_time3.format("15:04" if config.bool("time_24", DEFAULTS["time_24"]) else "3:04 PM")  #outputs military time but can change 15 to 3 to not do that. The Only thing missing from your current string though is the time zone, but if they're doing local time that's pretty irrelevant
 
         # handle date & time display options here
         date_str = date_and_time3.format("Jan 2" if config.bool("date_us", DEFAULTS["date_us"]) else "2 Jan")  #current format of your current date str
