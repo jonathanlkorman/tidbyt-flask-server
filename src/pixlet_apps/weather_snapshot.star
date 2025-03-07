@@ -115,6 +115,7 @@ def render_forecast_column(forecast_periods_subset):
     temps = get_high_low_temps(forecast_periods_subset)
     
     return render.Column(
+        expanded = True,
         main_align = "center",
         cross_align = "center",
         children = [
