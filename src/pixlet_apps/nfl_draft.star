@@ -10,7 +10,7 @@ URL = "https://site.web.api.espn.com/apis/v2/scoreboard/header"
 
 WHITE = "#FFFFFF"
 BLACK = "#000000"
-RED = "#FF0000"
+BLUE = "#78BEFF"
 
 
 DEFAULT_TIMEZONE = "America/New_York"
@@ -83,7 +83,7 @@ def main(config):
                 main_align = "start",
                 cross_align = "center",
                 children = [
-                    render.Text(content="{}".format(formatted_round_number), font="CG-pixel-3x5-mono", color= RED if pick['traded'] else WHITE),
+                    render.Text(content="{}".format(formatted_round_number), font="CG-pixel-3x5-mono", color= BLUE if pick['traded'] else WHITE),
                     render.Text(content="{} ".format(pick['position']), font="CG-pixel-3x5-mono", color=WHITE),
                     render.Text(content="{}".format(pick['player_name']), font="CG-pixel-3x5-mono", color=WHITE),
                 ]
