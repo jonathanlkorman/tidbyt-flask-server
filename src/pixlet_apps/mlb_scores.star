@@ -7,7 +7,13 @@ load("encoding/base64.star", "base64")
 
 CACHE_TTL_SECONDS = 300
 
-URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+SCOREBOARD_URL = "http://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+SCHEDULE_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/team_id/schedule"
+
+TEAM_MAP = {
+    "NYY": "10",
+    "NYM": "21",
+}
 
 WHITE = "#FFFFFF"
 BLACK = "#000000"
@@ -25,11 +31,13 @@ ALT_LOGO = """
 }
 """
 DEFAULT_TIMEZONE = "America/New_York"
+DEFAULT_CUTOFF_TIME = 9
 DEFAULT_ROTATION_RATE = 10
 DEFAULT_TEAMS = ["NYY"]
 DEFAULT_ROTATION_PREFERRED = False
 DEFAULT_ROTATION_LIVE = True
 DEFAULT_ROTATION_HIGHLIGHT = True
+DEFAULT_SINGLE_GAME_MODE = False
 
 EMPTY = base64.decode("""
 iVBORw0KGgoAAAANSUhEUgAAABUAAAAPCAYAAAALWoRrAAAAAXNSR0IArs4c6QAAAG9JREFUOE+9lFEOw
@@ -105,14 +113,27 @@ iVBORw0KGgoAAAANSUhEUgAAAAUAAAAGCAYAAAAL+1RLAAAAAXNSR0IArs4c6QAAACtJREFUGFdjZICC
 
 def main(config):
     timezone = config.get("timezone", DEFAULT_TIMEZONE)
+    cutoff_time = config.get("cutoff_time", DEFAULT_CUTOFF_TIME)
     now = time.now().in_location(timezone)
     
+    single_game_mode = config.get("single_game_mode", DEFAULT_SINGLE_GAME_MODE)
     rotation_rate = int(config.get("rotation_rate", DEFAULT_ROTATION_RATE))
     preferred_teams = config.get("preferred_teams", DEFAULT_TEAMS)
     rotation_only_preferred = config.bool("rotation_only_preferred", DEFAULT_ROTATION_PREFERRED)
     rotation_only_live = config.bool("rotation_only_live", DEFAULT_ROTATION_LIVE)
     rotation_highlight_preferred_team_when_live = config.bool("rotation_highlight_preferred_team_when_live", DEFAULT_ROTATION_HIGHLIGHT)
     
+    if single_game_mode and len(preferred_teams) == 1: 
+        team_id = TEAM_MAP.get(preferred_teams[0])
+        next_game_day = get_next_game_date(team_id, cutoff_time, timezone)
+        game = get_next_game(cutoff_time, timezone, team_id, next_game_day)
+        
+        if not game:
+            return render.Root(child = render.Text("No games available for the selected team"))
+            
+        return render.Root(child = render_game(game, now, timezone))
+
+
     games = get_all_games()
     
     if not games:
@@ -152,8 +173,61 @@ def includes_preferred_team(game, preferred_teams):
 def is_live(game):
     return game["state"] and game["state"] != "pre" and game["state"] != "post"
 
+def get_next_game_date(team_id, cutoff_time, timezone):
+    res = http.get(SCHEDULE_URL.replace("team_id", team_id))
+    if res.status_code != 200:
+        print("Error fetching game data")
+        return []
+
+    data = json.decode(res.body())
+
+    now = get_cutoff_date(cutoff_time, timezone)
+
+    next_game_day = None
+    for event in data['events']:
+        gamedatetime = time.parse_time(event["date"], format="2006-01-02T15:04Z")
+        local_gamedatetime = gamedatetime.in_location(timezone)
+        if local_gamedatetime == now:
+            next_game_day = now
+            break
+        elif local_gamedatetime > now:
+            next_game_day = local_gamedatetime
+            break
+    return next_game_day
+
+def get_next_game(cutoff_time,  timezone, team_id, next_game_day):
+    res = http.get(SCOREBOARD_URL + "?dates=" + get_date_string(next_game_day))
+    if res.status_code != 200:
+        print("Error fetching game data")
+        return []
+    
+    data = json.decode(res.body())
+    for event in data["events"]:
+        info = event["competitions"][0]
+        game = {
+            "name": event["shortName"],
+            "date": event["date"],
+            "hometeam": parse_team(info["competitors"][0]),
+            "awayteam": parse_team(info["competitors"][1]),
+            "time": info["status"]["displayClock"],
+            "inning": info["status"]["period"],
+            "shortDetail": info["status"]["type"]["shortDetail"],
+            "over": info["status"]["type"]["completed"],
+            "detail": info["status"]["type"]["detail"],
+            "state": info["status"]["type"]["state"],
+            "outs": info.get("situation", {}).get("outs"),
+            "strikes": info.get("situation", {}).get("strikes"),
+            "balls": info.get("situation", {}).get("balls"),
+            "onFirst": info.get("situation", {}).get("onFirst"),
+            "onSecond": info.get("situation", {}).get("onSecond"),
+            "onThird": info.get("situation", {}).get("onThird"),
+        }
+        if game["hometeam"]["id"] == team_id or game["awayteam"]["id"] == team_id:
+            return game
+    return None
+
 def get_all_games():
-    res = http.get(URL)
+    res = http.get(SCOREBOARD_URL)
     if res.status_code != 200:
         print("Error fetching game data")
         return []
@@ -467,6 +541,30 @@ def get_inning_indicator(shortDetail):
 def get_team_color(team_name, default_color):
     alt_colors = json.decode(ALT_COLOR)
     return "#" + alt_colors.get(team_name, default_color)
+
+def get_cutoff_date(cutoff_hour, timezone):
+    # Get the current time in the specified timezone
+    now = time.now().in_location(timezone)
+
+    # Check if the current hour is before the cutoff time
+    if now.hour < cutoff_hour:
+        # If before the cutoff time, return yesterday's date
+        yesterday = now - time.parse_duration("24h")
+        return time.time(year=yesterday.year, month=yesterday.month, day=yesterday.day, location=timezone)
+    else:
+        # If on or after the cutoff time, return today's date
+        return time.time(year=now.year, month=now.month, day=now.day, location=timezone)
+
+def get_date_string(date):
+    year = date.year
+    month = date.month
+    day = date.day
+    
+    year_str = str(year)
+    month_str = "0" + str(month) if month < 10 else str(month)
+    day_str = "0" + str(day) if day < 10 else str(day)
+    
+    return year_str + month_str + day_str
 
 def get_schema():
     return schema.Schema(
