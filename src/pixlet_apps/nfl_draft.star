@@ -71,10 +71,12 @@ def main(config):
             color = NFL_TEAM_COLORS.get(preferred_team, WHITE),
         )
     )
+    children.append(render.Box(width = 64, height = 1, color = BLACK))
+    children.append(render.Box(width = 64, height = 1, color = NFL_TEAM_COLORS.get(preferred_team, WHITE)))
 
     for i, pick in enumerate(draft_data[preferred_team], 1):
         formatted_round_number = print_aligned_numbers(pick['overall_pick'])
-        children.append(render.Text(content=" ", font="CG-pixel-3x5-mono", color=BLACK))
+        children.append(render.Box(width = 64, height = 2, color = BLACK))
         children.append(
             render.Row(
                 expanded = True,
