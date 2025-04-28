@@ -509,7 +509,12 @@ def get_game_status(game, now, timezone):
         }
     elif game["state"] == "post":
         date_text = local_gamedatetime.format("Jan 2")
-        final_text = "Final" if game["detail"] != "Final/OT" else "F/OT"
+
+        if game["detail"] == "Postponed":
+            final_text = "Postponed"
+        else:
+            final_text = "Final" if game["detail"] != "Final/OT" else "F/OT"
+            
         return {
             "date_text": date_text, 
             "final_text": final_text
