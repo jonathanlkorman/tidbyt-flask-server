@@ -308,137 +308,148 @@ AAAAAAAAABQAABgAA9AEAAVZQOEw6AAAALwWAAQAnICAh/D9rgdwQkBDy/7IQZNts/gyzOcRx5j+AL7g
 HiMyzCCQ==
 """)
 
-def main(config):
-    habitId = config.get("habitId")
-    cookie = config.get("cookie")
-    habit_name = config.get("habitName", DEFAULT_NAME)
-    timezone = config.get("timezone", DEFAULT_TIMEZONE)
-    now = time.now().in_location(timezone)
+def get_habit_data(habitId, cookie, afterStamp):
     
-    last_week = now - (time.parse_duration("24h") * 30)
-    default_stamp = time.time(year=last_week.year, month=last_week.month, day=last_week.day, location=timezone)
-    afterStamp = config.get("afterStamp", default_stamp.format("20060102"))
+    headers = {"Cookie": cookie}
+    json_body = {
+        "afterStamp": afterStamp,
+        "habitIds": [habitId],
+    }
 
-    if not habitId:
-        return render.Root(child = render.Text("No ID"))
-    if not cookie:
-        return render.Root(child = render.Text("No cookie"))
-        
-    habit_data = get_habit_data(habitId, cookie, afterStamp)
-    
-    if not habit_data:
-        return render.Root(child = render.Text("No data available"))
-    
-    habit_stats = get_habit_stats(habit_data, now)
-    rolling_week_checkins = get_rolling_week_checkins(habit_data, now)
-
-    return render.Root(
-        child = render.Column(
-            expanded = True,
-            main_align = "space_evenly",
-            cross_align = "start", 
-            children = [
-                render.Text(habit_name),
-                render.Box(width = 64, height = 1, color = "#3e60cd"),
-                render.Box(width = 64, height = 1, color = BLACK),
-                render.Row(
-                    main_align = "space_evenly",
-                    cross_align = "center", 
-                    expanded = True,
-                    children = [
-                        render.Row(
-                            main_align = "space_evenly",
-                            cross_align = "end", 
-                            expanded = False,
-                            children = [
-                                render.Image(XP_ICON_GOLD, width = 6, height = 7),
-                                render.Box(width = 1, height = 7, color = BLACK),
-                                render.Text(str(habit_stats["total_checkins"]), font = "tom-thumb", color = WHITE)
-                            ]
-                        ),
-                        render.Row(
-                            main_align = "space_evenly",
-                            cross_align = "end", 
-                            expanded = False,
-                            children = [
-                                render.Image(STREAK_ICON_GOLD, width = 6, height = 7),
-                                render.Box(width = 1, height = 7, color = BLACK),
-                                render.Text(str(habit_stats["streak"]), font = "tom-thumb", color = WHITE)
-                            ]
-                        )
-                    ]
-                ),
-                render.Box(width = 64, height = 3, color = BLACK),
-                render_rolling_week_view(rolling_week_checkins)
-            ],
-        ),
+    response = http.post(
+        url=URL,
+        headers=headers,
+        json_body=json_body,
     )
 
+    if response.status_code != 200:
+        print("Error: Request failed with status code %d" % response.status_code)
+        print("Response Body: %s" % response.body())
+        return None 
+
+    data = json.decode(response.body())
+
+    all_checkins = data.get("checkins")
+    if type(all_checkins) != "dict":
+         print("Error: 'checkins' key missing or not a dictionary in response")
+         return None 
+
+    checkins = all_checkins.get(habitId)
+    if checkins == None:
+         print("Error: Habit ID '%s' not found in checkins" % habitId)
+         return None 
+    if type(checkins) != "list":
+        print("Error: Checkins data for Habit ID '%s' is not a list" % habitId)
+        return None
+
+    return checkins
+
+def get_previous_day_int(date_int):
+    year = date_int // 10000
+    month = (date_int // 100) % 100
+    day = date_int % 100
+
+    day -= 1
+
+    if day == 0:
+        month -= 1
+
+        if month == 0:
+            month = 12
+            year -= 1
+
+        if month == 2:
+            is_leap = (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
+            day = 29 if is_leap else 28
+        elif month in [4, 6, 9, 11]:
+            day = 30
+        else:
+            day = 31
+
+    return year * 10000 + month * 100 + day
+
+def calculate_streak(habit_data, now):
+    if not habit_data:
+        return 0
+
+    checkin_dates = {}
+    for checkin in habit_data:
+        if "checkinStamp" in checkin:
+            checkin_dates[checkin["checkinStamp"]] = True
+
+    if not checkin_dates: 
+        return 0
+
+    today_int = now.year * 10000 + now.month * 100 + now.day
+    yesterday_int = get_previous_day_int(today_int)
+
+    streak = 0
+    current_check_date_int = 0 
+
+    if checkin_dates.get(today_int):
+        streak = 1
+        current_check_date_int = today_int
+    elif checkin_dates.get(yesterday_int):
+         streak = 1
+         current_check_date_int = yesterday_int
+    else:
+         return 0
+
+    for _ in range(len(checkin_dates) - 1): 
+        previous_day_int = get_previous_day_int(current_check_date_int)
+        if checkin_dates.get(previous_day_int):
+            streak += 1
+            current_check_date_int = previous_day_int 
+        else:
+            break 
+
+    return streak
+
+def get_habit_stats(habit_data, now):
+    habit_stats = {
+        "total_checkins": len(habit_data),
+        "streak": calculate_streak(habit_data, now), 
+    }
+    return habit_stats
+
 def get_rolling_week_checkins(habit_data, now):
-    daily_checkins = {0: False, 1: False, 2: False, 3: False, 4: False, 5: False, 6: False}
-    
-    h = now.day
-    m = now.month
-    Y = now.year
-    if m <= 2:
-        m += 12
-        Y -= 1
-    K = Y % 100
-    J = Y // 100
-    today_dow = (h + ((13 * (m + 1)) // 5) + K + (K // 4) + (J // 4) - (2 * J)) % 7
-    
-    def get_days_in_month(month, year):
-        days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        if month == 2 and (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)):
-            return 29
-        return days[month]
-    
-    def adjust_date_one_month(day, month, year):
-        if day <= 0:
-            month -= 1
-            if month <= 0:
-                month = 12
-                year -= 1
-            day += get_days_in_month(month, year)
-        return day, month, year
-    
+    daily_checkins = {}
+    for i in range(7):
+        daily_checkins[i] = False
+
+    checkin_stamps = {}
+    for checkin in habit_data:
+        if type(checkin) == "dict" and "checkinStamp" in checkin:
+            checkin_stamps[checkin["checkinStamp"]] = True
+
+    one_day = time.parse_duration("24h")
+
     for i in range(7):
         days_ago = 6 - i
-        
-        curr_day = now.day - days_ago
-        curr_month = now.month
-        curr_year = now.year
-        
-        curr_day, curr_month, curr_year = adjust_date_one_month(curr_day, curr_month, curr_year)
-        
-        curr_day, curr_month, curr_year = adjust_date_one_month(curr_day, curr_month, curr_year)
-        
-        curr_day, curr_month, curr_year = adjust_date_one_month(curr_day, curr_month, curr_year)
-        
-        check_stamp = curr_year * 10000 + curr_month * 100 + curr_day
-        
-        for checkin in habit_data:
-            if checkin["checkinStamp"] == check_stamp:
-                daily_checkins[i] = True
-                break
-                
+        target_day_time = now - (one_day * days_ago)
+
+        check_stamp = target_day_time.year * 10000 + target_day_time.month * 100 + target_day_time.day
+
+        if checkin_stamps.get(check_stamp):
+             daily_checkins[i] = True
+
     return daily_checkins
-    
-def render_rolling_week_view(rolling_week_checkins):
-    now = time.now().in_location(DEFAULT_TIMEZONE)
-    h = now.day
-    m = now.month
-    Y = now.year
-    if m <= 2:
-        m += 12
-        Y -= 1
-    K = Y % 100
-    J = Y // 100
-    today_dow = (h + ((13 * (m + 1)) // 5) + K + (K // 4) + (J // 4) - (2 * J)) % 7
-    
-    day_labels = ["s", "m", "t", "w", "t", "f", "s"]
+
+
+def render_rolling_week_view(rolling_week_checkins, now):
+    day_name = now.format("Mon").lower() 
+
+    day_labels = ["s", "m", "t", "w", "t", "f", "s"] 
+
+    day_name_to_index = { 
+        "sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6,
+    }
+
+    today_dow = day_name_to_index.get(day_name, 0)
+
     week_columns = []
-    
+    ordered_labels = []
+
     for i in range(7):
         days_ago = 6 - i
         display_dow = (today_dow - days_ago) % 7 
@@ -479,103 +490,83 @@ def render_rolling_week_view(rolling_week_checkins):
         children = week_columns
     )
 
-def get_habit_data(habitId, cookie, afterStamp):
-    headers = {
-        "Cookie": cookie
-    }
-    
-    json_body = {
-        "afterStamp": afterStamp,
-        "habitIds": [
-            habitId
-        ]
-    }
-    response = http.post(
-        url=URL,
-        headers=headers,
-        json_body=json_body
+    return render.Row(
+        main_align = "space_between", 
+        cross_align = "end", 
+        expanded = True,
+        children = week_columns,
     )
-    
-    if response.status_code != 200:
-        return {
-            "error": "Request failed with status code",
-            "response": json.decode(response.body())
-        }
-    
-    data = json.decode(response.body())
-
-    checkins = data["checkins"][habitId]
-    
-    return checkins
 
 
-def get_habit_stats(habit_data, now):
-    habit_stats = {
-        "total_checkins": len(habit_data),
-        "streak": calculate_streak(habit_data, now),
-    }
-    
-    return habit_stats
+def main(config):
+    habitId = config.get("habitId")
+    cookie = config.get("cookie") 
+    habit_name = config.get("habitName", DEFAULT_NAME)
+    timezone = config.get("timezone", DEFAULT_TIMEZONE)
 
-def calculate_streak(habit_data, now):
-    if not habit_data:
-        return 0
-    
-    sorted_checkins = sorted(habit_data, key=lambda x: x["checkinStamp"], reverse=True)
-    
-    today_int = now.year * 10000 + now.month * 100 + now.day
-    yesterday_int = get_previous_day(today_int)
-    
-    checkin_dates = {}
-    for checkin in sorted_checkins:
-        checkin_dates[checkin["checkinStamp"]] = True
-    
-    most_recent_date = sorted_checkins[0]["checkinStamp"]
-    
-    streak = 1
-    
-    if most_recent_date == today_int:
-        check_date = yesterday_int
-    elif most_recent_date == yesterday_int:
-        check_date = get_previous_day(yesterday_int)
-    else:
-        return 1
-    
-    current_date = most_recent_date
-    
-    for _ in range(len(sorted_checkins) - 1):
-        previous_date = get_previous_day(current_date)
-        
-        if previous_date in checkin_dates:
-            streak += 1
-            current_date = previous_date
-        else:
-            break
-    
-    return streak
+    if not habitId:
+        return render.Root(child = render.Text("Habit ID missing"))
+    if not cookie:
+        return render.Root(child = render.Text("Auth Cookie missing")) 
 
-def get_previous_day(date_int):
-    year = date_int // 10000
-    month = (date_int // 100) % 100
-    day = date_int % 100
-    
-    day -= 1
-    
-    if day == 0:
-        month -= 1
-        
-        if month == 0:
-            month = 12
-            year -= 1
-        
-        if month == 2:
-            if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
-                day = 29
-            else:
-                day = 28
-        elif month in [4, 6, 9, 11]:
-            day = 30
-        else:
-            day = 31
-    
-    return year * 10000 + month * 100 + day
+    now = time.now().in_location(timezone)
+
+    thirty_days_ago = now - time.parse_duration("720h")
+    default_stamp_time = time.time(
+        year=thirty_days_ago.year,
+        month=thirty_days_ago.month,
+        day=thirty_days_ago.day,
+        location=timezone 
+    )
+    default_after_stamp = default_stamp_time.format("20060102")
+    afterStamp = config.get("afterStamp", default_after_stamp)
+
+    habit_data = get_habit_data(habitId, cookie, afterStamp)
+
+    if habit_data == None: 
+        return render.Root(child = render.Text("Failed to get data"))
+
+    habit_stats = get_habit_stats(habit_data, now)
+    rolling_week_checkins = get_rolling_week_checkins(habit_data, now)
+
+    return render.Root(
+        child = render.Column(
+            expanded = True,
+            main_align = "space_evenly",
+            cross_align = "start", 
+            children = [
+                render.Text(habit_name),
+                render.Box(width = 64, height = 1, color = "#3e60cd"),
+                render.Box(width = 64, height = 1, color = BLACK),
+                render.Row(
+                    main_align = "space_evenly",
+                    cross_align = "center", 
+                    expanded = True,
+                    children = [
+                        render.Row(
+                            main_align = "space_evenly",
+                            cross_align = "end", 
+                            expanded = False,
+                            children = [
+                                render.Image(XP_ICON_GOLD, width = 6, height = 7),
+                                render.Box(width = 1, height = 7, color = BLACK),
+                                render.Text(str(habit_stats["total_checkins"]), font = "tom-thumb", color = WHITE)
+                            ]
+                        ),
+                        render.Row(
+                            main_align = "space_evenly",
+                            cross_align = "end", 
+                            expanded = False,
+                            children = [
+                                render.Image(STREAK_ICON_GOLD, width = 6, height = 7),
+                                render.Box(width = 1, height = 7, color = BLACK),
+                                render.Text(str(habit_stats["streak"]), font = "tom-thumb", color = WHITE)
+                            ]
+                        )
+                    ]
+                ),
+                render.Box(width = 64, height = 3, color = BLACK),
+                render_rolling_week_view(rolling_week_checkins, now)
+            ],
+        ),
+    )
