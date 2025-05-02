@@ -517,7 +517,6 @@ def get_habit_stats(habit_data, now):
     
     return habit_stats
 
-
 def calculate_streak(habit_data, now):
     if not habit_data:
         return 0
@@ -525,36 +524,58 @@ def calculate_streak(habit_data, now):
     sorted_checkins = sorted(habit_data, key=lambda x: x["checkinStamp"], reverse=True)
     
     today_int = now.year * 10000 + now.month * 100 + now.day
+    yesterday_int = get_previous_day(today_int)
     
-    checkin_dates = [checkin["checkinStamp"] for checkin in sorted_checkins]
+    checkin_dates = {}
+    for checkin in sorted_checkins:
+        checkin_dates[checkin["checkinStamp"]] = True
     
-    checkin_dates_dict = {date: True for date in checkin_dates}
+    most_recent_date = sorted_checkins[0]["checkinStamp"]
     
-    if len(checkin_dates) > 0:
-        most_recent_date = checkin_dates[0]
+    streak = 1
+    
+    if most_recent_date == today_int:
+        check_date = yesterday_int
+    elif most_recent_date == yesterday_int:
+        check_date = get_previous_day(yesterday_int)
+    else:
+        return 1
+    
+    current_date = most_recent_date
+    
+    for _ in range(len(sorted_checkins) - 1):
+        previous_date = get_previous_day(current_date)
         
-        streak = 1
-        
-        if most_recent_date == today_int:
-            check_date = today_int - 1
+        if previous_date in checkin_dates:
+            streak += 1
+            current_date = previous_date
         else:
-            if most_recent_date == today_int - 1:
-                check_date = most_recent_date - 1
-            else:
-                return 1
-        
-        max_days_to_check = len(checkin_dates)
-        consecutive_days = 1  
-        
-        for day_offset in range(max_days_to_check):
-            date_to_check = check_date - day_offset
-            
-            if checkin_dates_dict.get(date_to_check, False):
-                consecutive_days += 1
-            else:
-                break
-        
-        streak = consecutive_days
-        return streak
+            break
     
-    return 0
+    return streak
+
+def get_previous_day(date_int):
+    year = date_int // 10000
+    month = (date_int // 100) % 100
+    day = date_int % 100
+    
+    day -= 1
+    
+    if day == 0:
+        month -= 1
+        
+        if month == 0:
+            month = 12
+            year -= 1
+        
+        if month == 2:
+            if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
+                day = 29
+            else:
+                day = 28
+        elif month in [4, 6, 9, 11]:
+            day = 30
+        else:
+            day = 31
+    
+    return year * 10000 + month * 100 + day
