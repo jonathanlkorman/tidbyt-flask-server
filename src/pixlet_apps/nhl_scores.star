@@ -8,6 +8,7 @@ CACHE_TTL_SECONDS = 300
 
 TEAM_MAP = {
     "NYI": "12",   
+    "TOR": "21",
 }
 
 SCOREBOARD_URL = "http://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard"
