@@ -5,6 +5,38 @@ load("schema.star", "schema")
 load("time.star", "time")
 load("encoding/base64.star", "base64")
 
+def get_schema():
+    return schema.Schema(
+        version = "1",
+        fields = [
+            schema.Text(
+                id = "habitId",
+                name = "Habit ID",
+                desc = "Enter the ID of the habit to track.",
+                icon = "checkSquare",
+            ),
+            schema.Password(
+                id = "cookie",
+                name = "Auth Cookie",
+                desc = "Enter your TickTick auth cookie.",
+                icon = "key",
+            ),
+            schema.Text(
+                id = "habitName",
+                name = "Habit Name",
+                desc = "Enter the name of the habit.",
+                icon = "star",
+                default = "Habit",
+            ),
+            schema.Location(
+                id = "timezone",
+                name = "Timezone",
+                desc = "Sets the timezone for tracking.",
+                icon = "locationDot",
+            ),
+        ],
+    )
+
 CACHE_TTL_SECONDS = 300
 
 URL = "https://api.ticktick.com/api/v2/habitCheckins/query"
@@ -55,7 +87,7 @@ dP58a/LPAGfh2GpsbZOuyKtM5SgatYENvau6Dy6kvyg4efrt6SgD6bsp7IXwKryxWpy0RZU+tteGnZxW
 JGzaBtlyWtuiUNt9aVZ4rO6Wvebh9aeg9+/rpNlhzFyvazvE2F0KXa5V9zWCe+tGzPKfXnB2/5hAj54NbrdresFXhB423mVKwJm02U8
 8KQNi+/P7mbzdrX44S+nkrDw0VrT70mIfbxQ8bYj+LLDsvPtbrhmXDlfxsNW69sTcGBX9LMeLyh+BgiZsHoFV8ivSrOQmfNtWNM4Ots
 VzHj4Rf+JYWheRKWVzNh5gcdLW818SFPfuqMLqiZcLKFkKsr7jOc2aHk9AaV2bDxrwEFA8XGKL/S0PJ4/2xXNePjlkePDsGoJZb3crD
-fiOAt/s/RXyAMbtnXBlIn5sx0TPGyw7s0EHHqndJ71eFHiyXw8bXj1hand9Hk2rH2scLbjAi/Kq1aCBBOh8rtlRhC9Ybg2cxVKIXuLP
+fiOAt/s/RXyAMbtnXBlIn5sx0TPGyw7s0EHHqndJ71eFHiyXw8bXjhand9Hk2rH2scLbjAi/Kq1aCBBOh8rtlRhC9Ybg2cxVKIXuLP
 uO5F215PwF2G2W9Us1gXmCvb7Jh2YPFsx1XxsNGZ/5Iw8L1yZKYzfDiZAIx21s4S7FzTTmMvbyM6UaujIdS9h0agm3raA4316O88PG2
 Y0bM4AZL1sZhzvTsOdlAXa17cdRXrviNaSlAxfJNvhUoxa7hzngo5NjAMCxvovIKKwil+P3mti6YVFm4fJLrE0/g4cVRX6UsG5ooZsf
 c1cU8PvQMHgpduTkBRztplMvj4Ki3mVxnw8bl7FFs4IyHArC299SmNCT7or9mTzQ4Ucp45VM74ZUVZXDd+NGrT1h+85XxUKj9xRBseZ
@@ -227,8 +259,7 @@ AAD0AQABVlA4TDIAAAAvBYABAB8gECAs+F/0YENAUPg/WgIBMkSWHvMfxCnxgUzAMjqXAgKJ4BXR/6hG
 ABQAABgAA9AEAAVZQOEwyAAAALwWAAQAfIBAgLPhf9GBDQFD4P1oCATJElh7zH8Qp8YFMwDI6lwICieAV0f+oRrirEQBBTk1GSgAAAA
 AAAAAAAAUAAAYAAPQBAAFWUDhMMgAAAC8FgAEAHyAQICz4X/RgQ0BQ+D9aAgEyRJYe8x/EKfGBTMAyOpcCAongFdH/qEa4qxEAQU5NR
 koAAAAAAAAAAAAFAAAGAAD0AQABVlA4TDIAAAAvBYABAB8gECAs+F/0YENAUPg/WgIBMkSWHvMfxCnxgUzAMjqXAgKJ4BXR/6hGuKsR
-AEFOTUZKAAAAAAAAAAAABQAABgAA9AEAAVZQOEwyAAAALwWAAQAfIBAgLPhf9GBDQFD4P1oCATJElh7zH8Qp8YFMwDI6lwICieAV0f+
-oRrirEQBBTk1GSgAAAAAAAAAAAAUAAAYAAPQBAAFWUDhMMgAAAC8FgAEAHyAQICz4X/RgQ0BQ+D9aAgEyRJYe8x/EKfGBTMAyOpcCAo
+AEFOTUZKAAAAAAAAAAAABQAABgAA9AEAAVZQOEwyAAAALwWAAQAfIBAgLPhf9GBDQFD4P1oCATJElh7zH8Qp8YFMwDI6lwICieAV0f+oRrirEQBBTk1GSgAAAAAAAAAAAAUAAAYAAPQBAAFWUDhMMgAAAC8FgAEAHyAQICz4X/RgQ0BQ+D9aAgEyRJYe8x/EKfGBTMAyOpcCAo
 ngFdH/qEa4qxEAQU5NRkoAAAAAAAAAAAAFAAAGAAD0AQABVlA4TDIAAAAvBYABAB8gECAs+F/0YENAUPg/WgIBMkSWHvMfxCnxgUzAM
 jqXAgKJ4BXR/6hGuKsRAEFOTUZKAAAAAAAAAAAABQAABgAA9AEAAVZQOEwyAAAALwWAAQAfIBAgLPhf9GBDQFD4P1oCATJElh7zH8Qp
 8YFMwDI6lwICieAV0f+oRrirEQBBTk1GSgAAAAAAAAAAAAUAAAYAAPQBAAFWUDhMMgAAAC8FgAEAHyAQICz4X/RgQ0BQ+D9aAgEyRJY

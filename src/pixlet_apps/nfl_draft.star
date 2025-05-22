@@ -4,6 +4,27 @@ load("render.star", "render")
 load("schema.star", "schema")
 load("time.star", "time")
 
+def get_schema():
+    return schema.Schema(
+        version = "1",
+        fields = [
+            schema.Location(
+                id = "timezone",
+                name = "Timezone",
+                desc = "Sets the timezone for the app.",
+                icon = "locationDot",
+                default = "America/New_York",
+            ),
+            schema.Text(
+                id = "preferred_team",
+                name = "Preferred Team",
+                desc = "Enter your preferred NFL team.",
+                icon = "star",
+                default = "Jets",
+            ),
+        ],
+    )
+
 CACHE_TTL_SECONDS = 300
 
 URL = "https://site.web.api.espn.com/apis/v2/scoreboard/header"
@@ -155,4 +176,3 @@ def print_aligned_numbers(number):
         padding = ""
     
     return "{}{}".format(num_str, padding)
-

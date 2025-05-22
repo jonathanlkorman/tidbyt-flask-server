@@ -5,6 +5,20 @@ load("render.star", "render")
 load("schema.star", "schema")
 load("time.star", "time")
 
+def get_schema():
+    return schema.Schema(
+        version = "1",
+        fields = [
+            schema.Location(
+                id = "location",
+                name = "Location",
+                desc = "Location for weather forecast.",
+                icon = "locationDot",
+                default = '{\n    "grid_id": "OKX",\n    "grid_x": "39",\n    "grid_y": "36"\n}',
+            ),
+        ],
+    )
+
 # Constants
 CACHE_TTL_SEC = 6 * 60 * 60  # 6 hours cache
 

@@ -1,7 +1,19 @@
-# A simple clock applet
-
 load("render.star", "render")
 load("time.star", "time")
+load("schema.star", "schema")
+
+def get_schema():
+    return schema.Schema(
+        version = "1",
+        fields = [
+            schema.Location(
+                id = "timezone",
+                name = "Timezone",
+                desc = "Sets the timezone for the clock.",
+                icon = "locationDot",
+            ),
+        ],
+    )
 
 def main(config):
     timezone = config.get("timezone") or "America/New_York"
